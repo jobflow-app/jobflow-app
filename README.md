@@ -1,15 +1,13 @@
+# JobFlow Starter (Fixed)
 
-# JobFlow Starter
+Minimal Next.js starter for JobFlow.
 
-Simple SaaS starter for field service / technicians.
+Includes:
+- Home page
+- Dashboard page
+- App Router structure
+- Supabase client placeholder
 
-Features (v1):
-- Login
-- Dashboard
-- Clients
-- Jobs
-
-Tech:
-- Next.js
-- Supabase
-- Vercel
+Before connecting Supabase, add these env vars in Vercel:
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY

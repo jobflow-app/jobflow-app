@@ -1,16 +1,15 @@
-## Hi there 👋
 
-<!--
-**jobflow-app/jobflow-app** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+# JobFlow Starter
 
-Here are some ideas to get you started:
+Simple SaaS starter for field service / technicians.
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+Features (v1):
+- Login
+- Dashboard
+- Clients
+- Jobs
+
+Tech:
+- Next.js
+- Supabase
+- Vercel

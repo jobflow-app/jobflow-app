@@ -3,8 +3,14 @@ export default function AdminPage() {
     <main style={styles.page}>
       <div style={styles.card}>
         <h1 style={styles.title}>JobFlow Superadmin</h1>
-        <p style={styles.text}>Welcome, superadmin.</p>
-        <p style={styles.text}>Here you will manage companies, plans and trials.</p>
+        <p style={styles.text}>Manage companies, plans and 30-day trials.</p>
+
+        <div style={styles.grid}>
+          <div style={styles.box}>Companies</div>
+          <div style={styles.box}>Active Trials</div>
+          <div style={styles.box}>Plans</div>
+          <div style={styles.box}>Revenue</div>
+        </div>
       </div>
     </main>
   )
@@ -13,15 +19,9 @@ export default function AdminPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#eef2f7',
-    padding: '24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: '32px',
   },
   card: {
-    width: '100%',
-    maxWidth: '700px',
     background: '#fff',
     borderRadius: '24px',
     padding: '32px',
@@ -31,11 +31,22 @@ const styles = {
     fontSize: '32px',
     fontWeight: '800',
     color: '#163b7a',
-    marginBottom: '16px',
+    marginBottom: '10px',
   },
   text: {
-    fontSize: '18px',
-    color: '#374151',
-    marginBottom: '10px',
+    color: '#4b5563',
+    marginBottom: '24px',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: '16px',
+  },
+  box: {
+    background: '#eef2f7',
+    padding: '24px',
+    borderRadius: '16px',
+    fontWeight: '700',
+    color: '#1f2937',
   },
 }

@@ -2,27 +2,25 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../lib/supabase'
+import { loginWithPassword, isSuperadmin, getUserCompanyRole } from '../lib/auth'
+import { ROLES } from '../lib/roles'
 
-export default function HomePage() {
+export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const handleLogin = async (e) => {
+  async function handleLogin(e) {
     e.preventDefault()
     setLoading(true)
     setErrorMessage('')
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { data, error } = await loginWithPassword(email, password)
 
     if (error) {
-      setErrorMessage(error.message)
+      setErrorMessage(error.message || 'Login failed')
       setLoading(false)
       return
     }
@@ -30,19 +28,21 @@ export default function HomePage() {
     const userEmail = data?.user?.email
 
     if (!userEmail) {
-      setErrorMessage('Login failed.')
+      setErrorMessage('User not found')
       setLoading(false)
       return
     }
 
-    const { data: superadminRow, error: superadminError } = await supabase
-      .from('superadmins')
-      .select('email')
-      .eq('email', userEmail)
-      .maybeSingle()
-
-    if (!superadminError && superadminRow) {
+    const superadmin = await isSuperadmin(userEmail)
+    if (superadmin) {
       router.push('/admin')
+      return
+    }
+
+    const role = await getUserCompanyRole(userEmail)
+
+    if (role === ROLES.WORKER) {
+      router.push('/worker')
       return
     }
 
@@ -52,13 +52,12 @@ export default function HomePage() {
   return (
     <main style={styles.page}>
       <div style={styles.card}>
-        <div style={styles.logo}>JobFlow</div>
-        <h1 style={styles.title}>JobFlow – Handwerk Management System</h1>
-        <p style={styles.subtitle}>
-          Login for companies, workers and superadmin
-        </p>
+        <img src="/logo.png" alt="JobFlow" style={styles.logo} />
 
-        <form style={styles.form} onSubmit={handleLogin}>
+        <h1 style={styles.title}>JobFlow</h1>
+        <p style={styles.subtitle}>Handwerk Management System</p>
+
+        <form onSubmit={handleLogin} style={styles.form}>
           <input
             type="email"
             placeholder="Email"
@@ -96,69 +95,60 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#eef2f7',
     padding: '24px',
   },
   card: {
     width: '100%',
-    maxWidth: '460px',
-    background: '#ffffff',
+    maxWidth: '420px',
+    background: '#fff',
     borderRadius: '24px',
     padding: '32px 24px',
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
     textAlign: 'center',
   },
   logo: {
-    fontSize: '54px',
-    fontWeight: '800',
-    color: '#163b7a',
-    marginBottom: '20px',
+    width: '110px',
+    marginBottom: '10px',
   },
   title: {
-    fontSize: '28px',
+    fontSize: '34px',
     fontWeight: '800',
-    color: '#1f2937',
-    lineHeight: '1.15',
-    marginBottom: '16px',
+    color: '#163b7a',
+    margin: '0 0 8px 0',
   },
   subtitle: {
-    fontSize: '16px',
     color: '#6b7280',
     marginBottom: '24px',
   },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '14px',
+    gap: '12px',
   },
   input: {
-    width: '100%',
-    padding: '16px',
-    borderRadius: '16px',
+    padding: '14px',
+    borderRadius: '12px',
     border: '1px solid #d1d5db',
-    fontSize: '18px',
-    outline: 'none',
-    boxSizing: 'border-box',
+    fontSize: '16px',
   },
   button: {
-    width: '100%',
-    padding: '16px',
-    borderRadius: '16px',
+    padding: '14px',
+    borderRadius: '12px',
     border: 'none',
     background: '#163b7a',
-    color: '#ffffff',
-    fontSize: '20px',
+    color: '#fff',
+    fontSize: '16px',
     fontWeight: '700',
     cursor: 'pointer',
   },
   error: {
     color: '#b91c1c',
     fontSize: '14px',
-    marginTop: '6px',
+    margin: 0,
   },
   languages: {
-    marginTop: '24px',
+    marginTop: '20px',
     color: '#4b5563',
-    fontSize: '16px',
+    fontSize: '14px',
   },
 }

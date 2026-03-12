@@ -5,13 +5,19 @@ export default function DashboardPage() {
         <div style={styles.brand}>JobFlow</div>
 
         <nav style={styles.nav}>
-          <a style={styles.navItem}>Dashboard</a>
-          <a style={styles.navItem}>Poslovi</a>
-          <a style={styles.navItem}>Klijenti</a>
-          <a style={styles.navItem}>Računi</a>
-          <a style={styles.navItem}>Mapa</a>
-          <a style={styles.navItem}>Statistika</a>
-          <a style={styles.navItem}>Settings</a>
+   <a href="/dashboard" style={styles.navItem}>Dashboard</a>
+
+<a href="/jobs" style={styles.navItem}>Poslovi</a>
+
+<a href="/clients" style={styles.navItem}>Klijenti</a>
+
+<a href="/invoices" style={styles.navItem}>Računi</a>
+
+<a href="/map" style={styles.navItem}>Mapa</a>
+
+<a href="/stats" style={styles.navItem}>Statistika</a>
+
+<a href="/settings" style={styles.navItem}>Settings</a>
         </nav>
       </aside>
 

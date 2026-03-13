@@ -8,7 +8,8 @@ Features:
 - Invoices
 - Reports
 - Map & GPS
-- Multi-language (Deutsch / English / Balkan)
-- Superadmin + Companies
+- Multi-language (Deutsch / English / BHS
+- )
+- Superadmin + Companies + Worker 
 
 Powered by JobFlow

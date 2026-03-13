@@ -68,8 +68,8 @@ const styles = {
   },
 
   logo: {
-    width: '190px',
-    marginBottom: '14px',
+    width: '180px',
+    marginBottom: '12px',
   },
 
   subtitle: {

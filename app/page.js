@@ -127,7 +127,7 @@ const styles = {
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
   },
   logo: {
-    width: '300px',
+    width: '360px',
     marginBottom: '16px',
   },
   subtitle: {

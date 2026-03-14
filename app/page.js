@@ -129,8 +129,8 @@ boxShadow:'0 10px 30px rgba(0,0,0,0.08)'
 },
 
 logo:{
-width:'180px',
-marginBottom:'10px'
+width:'200px',
+marginBottom:'16px'
 },
 
 subtitle:{

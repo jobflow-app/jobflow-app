@@ -127,8 +127,8 @@ const styles = {
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
   },
   logo: {
-    width: '180px',
-    marginBottom: '12px',
+    width: '300px',
+    marginBottom: '16px',
   },
   subtitle: {
     marginBottom: '24px',

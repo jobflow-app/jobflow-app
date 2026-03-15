@@ -97,7 +97,7 @@ export default function Page() {
           style={styles.logo}
         />
 
-        <p style={styles.subtitle}>Handwerk-Managementsystem</p>
+        <p style={styles.subtitle}>Handwerk Management System</p>
 
         <form onSubmit={handleLogin} style={styles.form}>
           <input
@@ -165,7 +165,7 @@ const styles = {
 
   logo: {
     display: 'block',
-    width: '250px',
+    width: '300px',
     maxWidth: '88%',
     height: 'auto',
     margin: '0 auto 18px auto',

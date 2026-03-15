@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { translations, getLanguage, setLanguage } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function RegisterPage() {
+  const [language, setLang] = useState(getLanguage())
   const [companyName, setCompanyName] = useState('')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -12,6 +15,13 @@ export default function RegisterPage() {
   const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const t = useMemo(() => translations[language], [language])
+
+  const changeLanguage = (lang) => {
+    setLang(lang)
+    setLanguage(lang)
+  }
 
   const handleRegister = async (e) => {
     e.preventDefault()
@@ -38,12 +48,12 @@ export default function RegisterPage() {
     const userId = data?.user?.id
 
     if (!userId) {
-      setMessage('Registracija je poslana. Provjeri svoj E-Mail.')
+      setMessage('Check your email.')
       setLoading(false)
       return
     }
 
-    const { error: companyError } = await supabase
+    const { data: companyRow, error: companyError } = await supabase
       .from('companies')
       .insert([
         {
@@ -51,6 +61,8 @@ export default function RegisterPage() {
           owner_email: normalizedEmail,
         },
       ])
+      .select('id')
+      .single()
 
     if (companyError) {
       setErrorMessage(companyError.message)
@@ -66,6 +78,7 @@ export default function RegisterPage() {
           email: normalizedEmail,
           full_name: fullName,
           role: 'admin',
+          company_id: companyRow.id,
         },
       ])
 
@@ -75,7 +88,7 @@ export default function RegisterPage() {
       return
     }
 
-    setMessage('Registracija uspješna. Provjeri E-Mail i prijavi se.')
+    setMessage('OK')
     setLoading(false)
   }
 
@@ -84,42 +97,46 @@ export default function RegisterPage() {
       <div style={styles.card}>
         <img src="/logo.png" alt="JobFlow" style={styles.logo} />
 
-        <p style={styles.subtitle}>Nova registracija klijenata</p>
+        <p style={styles.subtitle}>{t.registerTitle}</p>
 
         <form onSubmit={handleRegister} style={styles.form}>
           <input
             type="text"
-            placeholder="Naziv firme"
+            placeholder={t.companyName}
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             style={styles.input}
+            autoComplete="organization"
             required
           />
 
           <input
             type="text"
-            placeholder="Ime i prezime"
+            placeholder={t.fullName}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             style={styles.input}
+            autoComplete="name"
             required
           />
 
           <input
             type="email"
-            placeholder="E-Mail"
+            placeholder={t.email}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={styles.input}
+            autoComplete="new-email"
             required
           />
 
           <input
             type="password"
-            placeholder="Passwort"
+            placeholder={t.password}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={styles.input}
+            autoComplete="new-password"
             required
           />
 
@@ -127,13 +144,19 @@ export default function RegisterPage() {
           {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
 
           <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? 'Registracija...' : 'Registrieren'}
+            {loading ? t.registerLoading : t.registerButton}
           </button>
         </form>
 
         <Link href="/" style={styles.link}>
-          Nazad na login
+          {t.backToLogin}
         </Link>
+
+        <LanguageSwitcher
+          language={language}
+          onChange={changeLanguage}
+          labels={t}
+        />
       </div>
     </main>
   )

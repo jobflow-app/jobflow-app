@@ -1,33 +1,61 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import { getCurrentUserWithRole } from '../../lib/auth'
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
   const [userEmail, setUserEmail] = useState('')
   const [company, setCompany] = useState(null)
 
   useEffect(() => {
     async function loadData() {
-      if (!supabase) return
+      const { user, profile } = await getCurrentUserWithRole()
 
-      const { data: userData } = await supabase.auth.getUser()
-      const email = userData?.user?.email || ''
+      if (!user || !profile) {
+        router.push('/')
+        return
+      }
+
+      if (profile.role === 'worker') {
+        router.push('/worker')
+        return
+      }
+
+      if (profile.role === 'superadmin') {
+        router.push('/admin')
+        return
+      }
+
+      const email = user.email || ''
       setUserEmail(email)
 
-      if (email) {
+      if (profile.company_id && supabase) {
         const { data: companyData } = await supabase
           .from('companies')
           .select('*')
-          .eq('owner_email', email)
+          .eq('id', profile.company_id)
           .maybeSingle()
 
         setCompany(companyData)
       }
+
+      setLoading(false)
     }
 
     loadData()
-  }, [])
+  }, [router])
+
+  if (loading) {
+    return (
+      <main style={styles.page}>
+        <p>Loading...</p>
+      </main>
+    )
+  }
 
   return (
     <main style={styles.page}>

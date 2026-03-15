@@ -1,60 +1,75 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
+import { supabase } from '../lib/supabase'
 import 'leaflet/dist/leaflet.css'
 
-export default function WorkersMap({ title = 'Workers Map' }) {
-  const mapRef = useRef(null)
-  const mapInstance = useRef(null)
+delete L.Icon.Default.prototype._getIconUrl
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl:
+    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl:
+    'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+})
+
+export default function WorkersMap({ companyId }) {
+  const [workers, setWorkers] = useState([])
+
+  const defaultCenter = [47.8095, 13.0550]
 
   useEffect(() => {
-    if (!mapRef.current || mapInstance.current) return
 
-    mapInstance.current = L.map(mapRef.current).setView([47.7994, 12.8721], 13)
+    async function loadWorkers() {
+      if (!supabase) return
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(mapInstance.current)
+      const { data } = await supabase
+        .from('worker_gps_status')
+        .select('*')
+        .eq('company_id', companyId)
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
 
-    L.marker([47.7994, 12.8721])
-      .addTo(mapInstance.current)
-      .bindPopup('Worker location')
-      .openPopup()
-  }, [])
+      setWorkers(data || [])
+    }
+
+    loadWorkers()
+
+    const interval = setInterval(loadWorkers, 5000)
+
+    return () => clearInterval(interval)
+
+  }, [companyId])
 
   return (
-    <div style={styles.wrapper}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>{title}</h2>
-        <p style={styles.subtitle}>Live GPS mapa radnika</p>
-      </div>
+    <div style={{ width: '100%' }}>
+      <MapContainer
+        center={defaultCenter}
+        zoom={11}
+        style={{ height: '600px', borderRadius: '16px' }}
+      >
+        <TileLayer
+          attribution="© OpenStreetMap"
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-      <div ref={mapRef} style={styles.mapBox}></div>
+        {workers.map((worker) => (
+          <Marker
+            key={worker.id}
+            position={[worker.latitude, worker.longitude]}
+          >
+            <Popup>
+              <strong>{worker.worker_email}</strong>
+              <br />
+              Status: {worker.status}
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
     </div>
   )
-}
-
-const styles = {
-  wrapper: {
-    width: '100%',
-  },
-  header: {
-    marginBottom: '16px',
-  },
-  title: {
-    fontSize: '24px',
-    fontWeight: '800',
-    color: '#163b7a',
-    marginBottom: '6px',
-  },
-  subtitle: {
-    color: '#6b7280',
-  },
-  mapBox: {
-    width: '100%',
-    height: '420px',
-    borderRadius: '20px',
-    overflow: 'hidden',
-  },
 }

@@ -24,13 +24,13 @@ export default function HomePage() {
       return
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error: loginError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
-    if (error) {
-      setError(error.message)
+    if (loginError) {
+      setError(loginError.message)
       setLoading(false)
       return
     }
@@ -43,18 +43,30 @@ export default function HomePage() {
       return
     }
 
-    if (userEmail === 'velibor.savicc@gmail.com') {
-      router.push('/admin')
-      return
-    }
-
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('email', userEmail)
       .maybeSingle()
 
-    if (profile?.role === 'worker') {
+    if (profileError) {
+      setError(profileError.message)
+      setLoading(false)
+      return
+    }
+
+    if (!profile?.role) {
+      setError('No role found for this user.')
+      setLoading(false)
+      return
+    }
+
+    if (profile.role === 'superadmin') {
+      router.push('/admin')
+      return
+    }
+
+    if (profile.role === 'worker') {
       router.push('/worker')
       return
     }
@@ -65,9 +77,15 @@ export default function HomePage() {
   return (
     <main style={styles.page}>
       <div style={styles.card}>
-        <img src="/logo.png" alt="JobFlow" style={styles.logo} />
+        <img
+          src="/logo.png"
+          alt="JobFlow"
+          style={styles.logo}
+        />
 
-        <p style={styles.subtitle}>Handwerk-Managementsystem</p>
+        <p style={styles.subtitle}>
+          Handwerk-Managementsystem
+        </p>
 
         <form onSubmit={handleLogin}>
           <input
@@ -102,7 +120,9 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <p style={styles.languages}>Deutsch | English | BHS</p>
+        <p style={styles.languages}>
+          Deutsch | English | BHS
+        </p>
       </div>
     </main>
   )
@@ -127,8 +147,8 @@ const styles = {
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
   },
   logo: {
-    width: '360px',
-    marginBottom: '16px',
+    width: '320px',
+    marginBottom: '12px',
   },
   subtitle: {
     marginBottom: '24px',

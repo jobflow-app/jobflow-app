@@ -2,19 +2,16 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function RegisterPage() {
-  const router = useRouter()
-
-  const [fullName, setFullName] = useState('')
   const [companyName, setCompanyName] = useState('')
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleRegister = async (e) => {
     e.preventDefault()
@@ -22,14 +19,13 @@ export default function RegisterPage() {
     setMessage('')
     setErrorMessage('')
 
-    const { error } = await supabase.auth.signUp({
-      email,
+    const normalizedEmail = email.trim().toLowerCase()
+
+    const { data, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
       password,
       options: {
-        data: {
-          full_name: fullName,
-          company_name: companyName,
-        },
+        emailRedirectTo: `${window.location.origin}/`,
       },
     })
 
@@ -39,19 +35,48 @@ export default function RegisterPage() {
       return
     }
 
-    setMessage(
-      'Registracija uspješna. Provjeri e-mail i potvrdi nalog.'
-    )
+    const userId = data?.user?.id
 
-    setFullName('')
-    setCompanyName('')
-    setEmail('')
-    setPassword('')
+    if (!userId) {
+      setMessage('Registracija poslana. Provjeri svoj E-Mail.')
+      setLoading(false)
+      return
+    }
+
+    const { error: companyError } = await supabase
+      .from('companies')
+      .insert([
+        {
+          name: companyName,
+          owner_email: normalizedEmail,
+        },
+      ])
+
+    if (companyError) {
+      setErrorMessage(companyError.message)
+      setLoading(false)
+      return
+    }
+
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert([
+        {
+          id: userId,
+          email: normalizedEmail,
+          full_name: fullName,
+          role: 'admin',
+        },
+      ])
+
+    if (profileError) {
+      setErrorMessage(profileError.message)
+      setLoading(false)
+      return
+    }
+
+    setMessage('Registracija uspješna. Provjeri E-Mail i prijavi se.')
     setLoading(false)
-
-    setTimeout(() => {
-      router.push('/')
-    }, 2000)
   }
 
   return (
@@ -59,24 +84,23 @@ export default function RegisterPage() {
       <div style={styles.card}>
         <img src="/logo.png" alt="JobFlow" style={styles.logo} />
 
-        <h1 style={styles.title}>Create account</h1>
-        <p style={styles.subtitle}>Start your 30-day free trial</p>
+        <p style={styles.subtitle}>Nova registracija klijenata</p>
 
         <form onSubmit={handleRegister} style={styles.form}>
           <input
             type="text"
-            placeholder="Full name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Naziv firme"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
             style={styles.input}
             required
           />
 
           <input
             type="text"
-            placeholder="Company name"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
+            placeholder="Ime i prezime"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
             style={styles.input}
             required
           />
@@ -92,25 +116,24 @@ export default function RegisterPage() {
 
           <input
             type="password"
-            placeholder="Password"
+            placeholder="Passwort"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={styles.input}
             required
-            minLength={6}
           />
 
+          {message ? <p style={styles.success}>{message}</p> : null}
+          {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
+
           <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? 'Creating...' : 'Start free trial'}
+            {loading ? 'Registracija...' : 'Registrieren'}
           </button>
         </form>
 
-        {message ? <p style={styles.success}>{message}</p> : null}
-        {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
-
-        <p style={styles.bottomText}>
-          Already have an account? <Link href="/" style={styles.link}>Login</Link>
-        </p>
+        <Link href="/" style={styles.link}>
+          Nazad na login
+        </Link>
       </div>
     </main>
   )
@@ -119,31 +142,26 @@ export default function RegisterPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
     background: '#eef2f7',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: '24px',
   },
   card: {
     width: '100%',
     maxWidth: '460px',
-    background: '#ffffff',
+    background: '#fff',
     borderRadius: '24px',
     padding: '32px',
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
   },
   logo: {
-    width: '130px',
     display: 'block',
-    margin: '0 auto 20px',
-  },
-  title: {
-    fontSize: '30px',
-    fontWeight: '800',
-    color: '#163b7a',
-    textAlign: 'center',
-    marginBottom: '8px',
+    width: '220px',
+    maxWidth: '100%',
+    height: 'auto',
+    margin: '0 auto 14px auto',
   },
   subtitle: {
     textAlign: 'center',
@@ -156,43 +174,39 @@ const styles = {
     gap: '14px',
   },
   input: {
-    width: '100%',
     padding: '14px 16px',
-    borderRadius: '14px',
+    borderRadius: '12px',
     border: '1px solid #d1d5db',
     fontSize: '16px',
-    outline: 'none',
   },
   button: {
+    padding: '14px',
+    borderRadius: '12px',
+    border: 'none',
     background: '#163b7a',
     color: '#fff',
-    border: 'none',
-    borderRadius: '14px',
-    padding: '14px',
     fontSize: '16px',
     fontWeight: '700',
     cursor: 'pointer',
   },
-  success: {
-    marginTop: '18px',
-    color: '#15803d',
+  link: {
+    display: 'block',
     textAlign: 'center',
+    marginTop: '18px',
+    color: '#163b7a',
+    textDecoration: 'none',
     fontWeight: '600',
+  },
+  success: {
+    color: 'green',
+    fontSize: '14px',
+    margin: 0,
+    textAlign: 'center',
   },
   error: {
-    marginTop: '18px',
-    color: '#dc2626',
+    color: 'crimson',
+    fontSize: '14px',
+    margin: 0,
     textAlign: 'center',
-    fontWeight: '600',
-  },
-  bottomText: {
-    marginTop: '18px',
-    textAlign: 'center',
-    color: '#6b7280',
-  },
-  link: {
-    color: '#163b7a',
-    fontWeight: '700',
-    textDecoration: 'none',
   },
 }

@@ -18,44 +18,70 @@ export default function HomePage() {
     setLoading(true)
     setErrorMessage('')
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      setErrorMessage(error.message)
-      setLoading(false)
-      return
-    }
+      if (error) {
+        setErrorMessage(error.message)
+        setLoading(false)
+        return
+      }
 
-    const userId = data?.user?.id
-    if (!userId) {
-      setErrorMessage('Login failed.')
-      setLoading(false)
-      return
-    }
+      const user = data?.user
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', userId)
-      .single()
+      if (!user) {
+        setErrorMessage('Login failed. User not found.')
+        setLoading(false)
+        return
+      }
 
-    if (profileError || !profile) {
-      setErrorMessage('Profile not found.')
-      setLoading(false)
-      return
-    }
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, company_id, email')
+        .eq('id', user.id)
+        .maybeSingle()
 
-    if (profile.role === 'superadmin') {
-      router.push('/superadmin')
-    } else if (profile.role === 'admin') {
+      if (profileError) {
+        setErrorMessage(`Profile error: ${profileError.message}`)
+        setLoading(false)
+        return
+      }
+
+      if (!profile) {
+        setErrorMessage(
+          'Login uspješan, ali profile nije pronađen. Provjeri trigger / profiles tabelu.'
+        )
+        setLoading(false)
+        return
+      }
+
+      if (profile.role === 'superadmin') {
+        router.push('/superadmin')
+        return
+      }
+
+      if (profile.role === 'admin') {
+        router.push('/dashboard')
+        return
+      }
+
+      if (profile.role === 'worker') {
+        router.push('/worker')
+        return
+      }
+
+      if (profile.role === 'client') {
+        router.push('/client')
+        return
+      }
+
       router.push('/dashboard')
-    } else if (profile.role === 'worker') {
-      router.push('/worker')
-    } else {
-      router.push('/dashboard')
+    } catch (err) {
+      setErrorMessage('Unexpected error during login.')
+      console.error(err)
     }
 
     setLoading(false)
@@ -172,6 +198,7 @@ const styles = {
     textAlign: 'center',
     marginTop: '16px',
     fontWeight: '600',
+    whiteSpace: 'pre-wrap',
   },
   links: {
     display: 'flex',

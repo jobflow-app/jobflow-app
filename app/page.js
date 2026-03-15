@@ -4,21 +4,20 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AppLayout from '../../components/AppLayout'
 import { getCurrentUserWithRole } from '../../lib/auth'
+import { supabase } from '../../lib/supabase'
 
 export default function WorkerPage() {
   const router = useRouter()
+
   const [loading, setLoading] = useState(true)
   const [allowed, setAllowed] = useState(false)
-
-  const [job, setJob] = useState({
-    client: 'Müller',
-    address: 'Salzburg 12',
-    description: 'Türöffnung / Schlüsselnotdienst',
-    status: 'planned',
-  })
+  const [workerProfile, setWorkerProfile] = useState(null)
+  const [workerRow, setWorkerRow] = useState(null)
+  const [job, setJob] = useState(null)
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
-    async function checkAccess() {
+    async function loadWorkerJob() {
       const { user, profile } = await getCurrentUserWithRole()
 
       if (!user || !profile) {
@@ -41,21 +40,97 @@ export default function WorkerPage() {
         return
       }
 
+      if (!supabase) {
+        setMessage('Supabase is not connected.')
+        setLoading(false)
+        return
+      }
+
+      setWorkerProfile(profile)
+
+      const { data: workerData, error: workerError } = await supabase
+        .from('workers')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle()
+
+      if (workerError) {
+        setMessage(workerError.message)
+        setLoading(false)
+        return
+      }
+
+      if (!workerData) {
+        setMessage('Worker record not found.')
+        setLoading(false)
+        return
+      }
+
+      setWorkerRow(workerData)
+
+      const { data: jobData, error: jobError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('worker_id', workerData.id)
+        .in('status', ['planned', 'on_the_way', 'arrived', 'started'])
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (jobError) {
+        setMessage(jobError.message)
+        setLoading(false)
+        return
+      }
+
+      setJob(jobData || null)
       setAllowed(true)
       setLoading(false)
     }
 
-    checkAccess()
+    loadWorkerJob()
   }, [router])
 
-  function updateStatus(newStatus) {
+  async function updateStatus(newStatus) {
+    if (!supabase || !job) return
+
+    setMessage('Saving...')
+
+    const { error } = await supabase
+      .from('jobs')
+      .update({ status: newStatus })
+      .eq('id', job.id)
+
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+
+    const { error: historyError } = await supabase
+      .from('job_history')
+      .insert({
+        job_id: job.id,
+        company_id: job.company_id,
+        status: newStatus,
+        note: `Status changed to ${newStatus}`,
+      })
+
+    if (historyError) {
+      setMessage(historyError.message)
+      return
+    }
+
     setJob((prev) => ({
       ...prev,
       status: newStatus,
     }))
+
+    setMessage('Status updated successfully.')
   }
 
   function handleNavigate() {
+    if (!job?.address) return
+
     const query = encodeURIComponent(job.address)
     window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank')
   }
@@ -85,62 +160,82 @@ export default function WorkerPage() {
       subtitle="Einfacher Einsatz-Workflow"
     >
       <div style={styles.wrapper}>
-        <div style={styles.jobCard}>
-          <h2 style={styles.client}>{job.client}</h2>
-          <p style={styles.address}>{job.address}</p>
-          <p style={styles.description}>{job.description}</p>
-
-          <div style={styles.statusBox}>
-            <span style={styles.statusLabel}>Status:</span>
-            <span style={styles.statusValue}>{job.status}</span>
+        {!job ? (
+          <div style={styles.jobCard}>
+            <h2 style={styles.client}>No active job</h2>
+            <p style={styles.description}>
+              There is currently no assigned active job for this worker.
+            </p>
+            {message ? <p style={styles.message}>{message}</p> : null}
           </div>
-        </div>
+        ) : (
+          <>
+            <div style={styles.jobCard}>
+              <h2 style={styles.client}>{job.client_name || 'Client'}</h2>
+              <p style={styles.address}>{job.address || '-'}</p>
+              <p style={styles.description}>{job.description || '-'}</p>
 
-        <div style={styles.grid}>
-          <button style={styles.primaryBtn} onClick={handleNavigate}>
-            Navigieren
-          </button>
+              <div style={styles.statusBox}>
+                <span style={styles.statusLabel}>Status:</span>
+                <span style={styles.statusValue}>{job.status}</span>
+              </div>
 
-          <button
-            style={styles.actionBtn}
-            onClick={() => updateStatus('on_the_way')}
-          >
-            Bin unterwegs
-          </button>
+              <div style={styles.metaBox}>
+                <p><strong>Worker:</strong> {workerRow?.name || workerRow?.email || '-'}</p>
+                <p><strong>Company ID:</strong> {workerProfile?.company_id || '-'}</p>
+                <p><strong>Job ID:</strong> {job.id}</p>
+              </div>
 
-          <button
-            style={styles.actionBtn}
-            onClick={() => updateStatus('arrived')}
-          >
-            Angekommen
-          </button>
+              {message ? <p style={styles.message}>{message}</p> : null}
+            </div>
 
-          <button
-            style={styles.actionBtn}
-            onClick={() => updateStatus('started')}
-          >
-            Arbeit gestartet
-          </button>
+            <div style={styles.grid}>
+              <button style={styles.primaryBtn} onClick={handleNavigate}>
+                Navigieren
+              </button>
 
-          <button
-            style={styles.actionBtn}
-            onClick={() => updateStatus('completed')}
-          >
-            Arbeit beendet
-          </button>
+              <button
+                style={styles.actionBtn}
+                onClick={() => updateStatus('on_the_way')}
+              >
+                Bin unterwegs
+              </button>
 
-          <button style={styles.secondaryBtn} onClick={handlePhoto}>
-            Foto
-          </button>
+              <button
+                style={styles.actionBtn}
+                onClick={() => updateStatus('arrived')}
+              >
+                Angekommen
+              </button>
 
-          <button style={styles.secondaryBtn} onClick={handleSignature}>
-            Unterschrift
-          </button>
+              <button
+                style={styles.actionBtn}
+                onClick={() => updateStatus('started')}
+              >
+                Arbeit gestartet
+              </button>
 
-          <button style={styles.primaryWideBtn} onClick={handleInvoice}>
-            Rechnung senden
-          </button>
-        </div>
+              <button
+                style={styles.actionBtn}
+                onClick={() => updateStatus('completed')}
+              >
+                Arbeit beendet
+              </button>
+
+              <button style={styles.secondaryBtn} onClick={handlePhoto}>
+                Foto
+              </button>
+
+              <button style={styles.secondaryBtn} onClick={handleSignature}>
+                Unterschrift
+              </button>
+
+              <button style={styles.primaryWideBtn} onClick={handleInvoice}>
+                Rechnung senden
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </AppLayout>
   )
@@ -202,6 +297,19 @@ const styles = {
     fontWeight: '800',
     color: '#163b7a',
     textTransform: 'capitalize',
+  },
+  metaBox: {
+    marginTop: '16px',
+    padding: '14px',
+    borderRadius: '14px',
+    background: '#f8fafc',
+    lineHeight: '1.8',
+    color: '#374151',
+  },
+  message: {
+    marginTop: '14px',
+    color: '#163b7a',
+    fontWeight: '600',
   },
   grid: {
     display: 'grid',

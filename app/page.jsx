@@ -4,62 +4,13 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-
-const translations = {
-  de: {
-    subtitle: 'Handwerk Management System',
-    emailPlaceholder: 'E-Mail',
-    passwordPlaceholder: 'Passwort',
-    login: 'Anmelden',
-    loading: 'Anmeldung...',
-    forgotPassword: 'Passwort vergessen?',
-    register: 'Neue Kundenregistrierung',
-    profileNotFound: 'Profil wurde nicht gefunden.',
-    loginFailed: 'Anmeldung fehlgeschlagen.',
-    unknownRole: 'Unbekannte Benutzerrolle.',
-    userNotFound: 'Benutzer wurde nicht gefunden.',
-    german: 'Deutsch',
-    english: 'Englisch',
-    bhs: 'BHS',
-  },
-  en: {
-    subtitle: 'Craft Management System',
-    emailPlaceholder: 'E-Mail',
-    passwordPlaceholder: 'Password',
-    login: 'Login',
-    loading: 'Logging in...',
-    forgotPassword: 'Forgot password?',
-    register: 'New customer registration',
-    profileNotFound: 'Profile not found.',
-    loginFailed: 'Login failed.',
-    unknownRole: 'Unknown user role.',
-    userNotFound: 'User not found.',
-    german: 'German',
-    english: 'English',
-    bhs: 'BHS',
-  },
-  bhs: {
-    subtitle: 'Sistem za upravljanje radovima',
-    emailPlaceholder: 'E-Mail',
-    passwordPlaceholder: 'Lozinka',
-    login: 'Prijava',
-    loading: 'Prijava...',
-    forgotPassword: 'Zaboravili ste lozinku?',
-    register: 'Nova registracija klijenata',
-    profileNotFound: 'Profil nije pronađen.',
-    loginFailed: 'Prijava nije uspjela.',
-    unknownRole: 'Nepoznata korisnička rola.',
-    userNotFound: 'Korisnik nije pronađen.',
-    german: 'Deutsch',
-    english: 'English',
-    bhs: 'BHS',
-  },
-}
+import { translations, getLanguage, setLanguage } from '@/lib/i18n'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function Page() {
   const router = useRouter()
 
-  const [language, setLanguage] = useState('de')
+  const [language, setLang] = useState(getLanguage())
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -67,18 +18,25 @@ export default function Page() {
 
   const t = useMemo(() => translations[language], [language])
 
+  const changeLanguage = (lang) => {
+    setLang(lang)
+    setLanguage(lang)
+  }
+
   const handleLogin = async (e) => {
     e.preventDefault()
     setLoading(true)
     setErrorMessage('')
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+    const normalizedEmail = email.trim().toLowerCase()
+
+    const { error: loginError } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
       password,
     })
 
-    if (error) {
-      setErrorMessage(error.message)
+    if (loginError) {
+      setErrorMessage(loginError.message)
       setLoading(false)
       return
     }
@@ -94,12 +52,12 @@ export default function Page() {
       return
     }
 
-    const normalizedEmail = user.email?.toLowerCase().trim()
+    const userEmail = user.email?.toLowerCase().trim()
 
     const { data: superadmin, error: superadminError } = await supabase
       .from('superadmins')
       .select('email')
-      .eq('email', normalizedEmail)
+      .eq('email', userEmail)
       .maybeSingle()
 
     if (superadminError) {
@@ -155,26 +113,28 @@ export default function Page() {
         <form onSubmit={handleLogin} style={styles.form}>
           <input
             type="email"
-            placeholder={t.emailPlaceholder}
+            placeholder={t.email}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={styles.input}
+            autoComplete="email"
             required
           />
 
           <input
             type="password"
-            placeholder={t.passwordPlaceholder}
+            placeholder={t.password}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={styles.input}
+            autoComplete="current-password"
             required
           />
 
           {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
 
           <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? t.loading : t.login}
+            {loading ? t.loginLoading : t.login}
           </button>
         </form>
 
@@ -188,40 +148,11 @@ export default function Page() {
           </Link>
         </div>
 
-        <div style={styles.languageRow}>
-          <button
-            type="button"
-            onClick={() => setLanguage('de')}
-            style={{
-              ...styles.languageButton,
-              ...(language === 'de' ? styles.languageButtonActive : {}),
-            }}
-          >
-            {t.german}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setLanguage('en')}
-            style={{
-              ...styles.languageButton,
-              ...(language === 'en' ? styles.languageButtonActive : {}),
-            }}
-          >
-            {t.english}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setLanguage('bhs')}
-            style={{
-              ...styles.languageButton,
-              ...(language === 'bhs' ? styles.languageButtonActive : {}),
-            }}
-          >
-            {t.bhs}
-          </button>
-        </div>
+        <LanguageSwitcher
+          language={language}
+          onChange={changeLanguage}
+          labels={t}
+        />
       </div>
     </main>
   )
@@ -236,7 +167,6 @@ const styles = {
     justifyContent: 'center',
     padding: '20px',
   },
-
   card: {
     width: '100%',
     maxWidth: '460px',
@@ -246,31 +176,26 @@ const styles = {
     boxShadow: '0 18px 60px rgba(22,59,122,0.12)',
     border: '1px solid rgba(22,59,122,0.06)',
   },
-
   logo: {
     display: 'block',
-    width: '320px',
+    width: '250px',
     maxWidth: '88%',
     height: 'auto',
-    margin: '0 auto 24px auto',
+    margin: '0 auto 18px auto',
     objectFit: 'contain',
   },
-
   subtitle: {
     textAlign: 'center',
     color: '#667085',
     marginBottom: '26px',
     fontSize: '15px',
     fontWeight: '500',
-    lineHeight: '1.4',
   },
-
   form: {
     display: 'flex',
     flexDirection: 'column',
     gap: '14px',
   },
-
   input: {
     width: '100%',
     padding: '15px 16px',
@@ -282,7 +207,6 @@ const styles = {
     color: '#111827',
     boxSizing: 'border-box',
   },
-
   button: {
     marginTop: '4px',
     width: '100%',
@@ -296,7 +220,6 @@ const styles = {
     cursor: 'pointer',
     boxShadow: '0 8px 22px rgba(22,59,122,0.22)',
   },
-
   linksBox: {
     marginTop: '20px',
     display: 'flex',
@@ -304,46 +227,18 @@ const styles = {
     gap: '12px',
     alignItems: 'center',
   },
-
   link: {
     color: '#163b7a',
     textDecoration: 'none',
     fontWeight: '600',
     fontSize: '14px',
   },
-
   linkPrimary: {
     color: '#163b7a',
     textDecoration: 'none',
     fontWeight: '800',
     fontSize: '15px',
   },
-
-  languageRow: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '10px',
-    marginTop: '20px',
-    flexWrap: 'wrap',
-  },
-
-  languageButton: {
-    border: '1px solid #d7deea',
-    background: '#f9fbfe',
-    color: '#163b7a',
-    borderRadius: '999px',
-    padding: '8px 14px',
-    fontSize: '13px',
-    fontWeight: '700',
-    cursor: 'pointer',
-  },
-
-  languageButtonActive: {
-    background: '#163b7a',
-    color: '#fff',
-    border: '1px solid #163b7a',
-  },
-
   error: {
     color: '#d92d20',
     fontSize: '14px',

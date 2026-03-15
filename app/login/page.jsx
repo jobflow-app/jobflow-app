@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -90,6 +91,12 @@ export default function LoginPage() {
           required
         />
 
+        <div style={styles.linkRow}>
+          <Link href="/forgot-password" style={styles.link}>
+            Passwort vergessen?
+          </Link>
+        </div>
+
         {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
 
         <button type="submit" style={styles.button} disabled={loading}>
@@ -137,6 +144,17 @@ const styles = {
     marginBottom: '14px',
     fontSize: '16px',
     outline: 'none',
+  },
+  linkRow: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: '16px',
+  },
+  link: {
+    color: '#163b7a',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '14px',
   },
   button: {
     width: '100%',

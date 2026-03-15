@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       return
     }
 
-    setMessage('E-Mail za promjenu šifre je poslan.')
+    setMessage('E-Mail za obnovu šifre je poslan.')
     setLoading(false)
   }
 
@@ -69,31 +69,34 @@ export default function ForgotPasswordPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#eef2f7',
+    background: 'linear-gradient(180deg, #eef4fb 0%, #e7eef8 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '24px',
+    padding: '20px',
   },
   card: {
     width: '100%',
-    maxWidth: '430px',
+    maxWidth: '460px',
     background: '#fff',
-    borderRadius: '24px',
-    padding: '32px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+    borderRadius: '28px',
+    padding: '36px 26px 28px 26px',
+    boxShadow: '0 18px 60px rgba(22,59,122,0.12)',
+    border: '1px solid rgba(22,59,122,0.06)',
   },
   logo: {
     display: 'block',
-    width: '220px',
-    maxWidth: '100%',
+    width: '250px',
+    maxWidth: '88%',
     height: 'auto',
-    margin: '0 auto 14px auto',
+    margin: '0 auto 18px auto',
   },
   subtitle: {
     textAlign: 'center',
-    color: '#6b7280',
-    marginBottom: '24px',
+    color: '#667085',
+    marginBottom: '26px',
+    fontSize: '15px',
+    fontWeight: '500',
   },
   form: {
     display: 'flex',
@@ -101,20 +104,25 @@ const styles = {
     gap: '14px',
   },
   input: {
-    padding: '14px 16px',
-    borderRadius: '12px',
-    border: '1px solid #d1d5db',
+    width: '100%',
+    padding: '15px 16px',
+    borderRadius: '14px',
+    border: '1px solid #d7deea',
     fontSize: '16px',
+    background: '#f9fbfe',
+    boxSizing: 'border-box',
   },
   button: {
-    padding: '14px',
-    borderRadius: '12px',
+    width: '100%',
+    padding: '15px',
+    borderRadius: '14px',
     border: 'none',
     background: '#163b7a',
     color: '#fff',
     fontSize: '16px',
-    fontWeight: '700',
+    fontWeight: '800',
     cursor: 'pointer',
+    boxShadow: '0 8px 22px rgba(22,59,122,0.22)',
   },
   link: {
     display: 'block',
@@ -122,18 +130,26 @@ const styles = {
     marginTop: '18px',
     color: '#163b7a',
     textDecoration: 'none',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   success: {
-    color: 'green',
+    color: '#067647',
     fontSize: '14px',
     margin: 0,
     textAlign: 'center',
+    background: '#ecfdf3',
+    border: '1px solid #abefc6',
+    borderRadius: '10px',
+    padding: '10px 12px',
   },
   error: {
-    color: 'crimson',
+    color: '#d92d20',
     fontSize: '14px',
     margin: 0,
     textAlign: 'center',
+    background: '#fff1f0',
+    border: '1px solid #ffd3cf',
+    borderRadius: '10px',
+    padding: '10px 12px',
   },
 }

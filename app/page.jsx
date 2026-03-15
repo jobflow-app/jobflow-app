@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 
 const translations = {
   de: {
-    subtitle: 'Handwerk-Managementsystem',
+    subtitle: 'Handwerk Management System',
     emailPlaceholder: 'E-Mail',
     passwordPlaceholder: 'Passwort',
     login: 'Anmelden',
@@ -249,10 +249,10 @@ const styles = {
 
   logo: {
     display: 'block',
-    width: '250px',
+    width: '320px',
     maxWidth: '88%',
     height: 'auto',
-    margin: '0 auto 18px auto',
+    margin: '0 auto 24px auto',
     objectFit: 'contain',
   },
 

@@ -5,12 +5,9 @@ import WorkersMap from '@/components/WorkersMap'
 export default function MapPage() {
   return (
     <main style={styles.page}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Map</h1>
-        <p style={styles.subtitle}>Live GPS pregled</p>
-      </div>
+      <h1 style={styles.title}>Map</h1>
 
-      <WorkersMap title="Live Workers Map" />
+      <WorkersMap />
     </main>
   )
 }
@@ -18,19 +15,12 @@ export default function MapPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#eef2f7',
     padding: '30px',
-  },
-  header: {
-    marginBottom: '24px',
+    background: '#eef2f7',
   },
   title: {
-    fontSize: '32px',
+    fontSize: '28px',
     fontWeight: '800',
-    color: '#163b7a',
-    marginBottom: '8px',
-  },
-  subtitle: {
-    color: '#6b7280',
+    marginBottom: '20px',
   },
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import JobDetailsModal from '@/components/JobDetailsModal'
 
 type JobRow = {
   id: string
@@ -10,6 +11,8 @@ type JobRow = {
   status: string | null
   priority: string | null
   worker_name: string | null
+  worker_id?: string | null
+  notes?: string | null
   company_id: string
   updated_at: string | null
 }
@@ -28,6 +31,10 @@ const statusStyles: Record<string, React.CSSProperties> = {
     color: '#1d4ed8',
   },
   'in progress': {
+    background: '#ecfeff',
+    color: '#0f766e',
+  },
+  in_progress: {
     background: '#ecfeff',
     color: '#0f766e',
   },
@@ -104,6 +111,9 @@ export default function DashboardJobsList() {
   const [errorMessage, setErrorMessage] = useState('')
   const [companyId, setCompanyId] = useState<string | null>(null)
 
+  const [selectedJob, setSelectedJob] = useState<JobRow | null>(null)
+  const [modalOpen, setModalOpen] = useState(false)
+
   const sortedJobs = useMemo(() => {
     return [...jobs].sort((a, b) => {
       const aTime = a.updated_at ? new Date(a.updated_at).getTime() : 0
@@ -111,6 +121,23 @@ export default function DashboardJobsList() {
       return bTime - aTime
     })
   }, [jobs])
+
+  const fetchJobs = async (currentCompanyId: string) => {
+    const { data: jobsData, error: jobsError } = await supabase
+      .from('jobs')
+      .select(
+        'id, title, address, status, priority, worker_name, worker_id, notes, company_id, updated_at'
+      )
+      .eq('company_id', currentCompanyId)
+      .order('updated_at', { ascending: false })
+
+    if (jobsError) {
+      setErrorMessage(jobsError.message)
+      return
+    }
+
+    setJobs((jobsData as JobRow[]) || [])
+  }
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null
@@ -157,21 +184,7 @@ export default function DashboardJobsList() {
 
         setCompanyId(profile.company_id)
 
-        const { data: jobsData, error: jobsError } = await supabase
-          .from('jobs')
-          .select(
-            'id, title, address, status, priority, worker_name, company_id, updated_at'
-          )
-          .eq('company_id', profile.company_id)
-          .order('updated_at', { ascending: false })
-
-        if (jobsError) {
-          setErrorMessage(jobsError.message)
-          setLoading(false)
-          return
-        }
-
-        setJobs((jobsData as JobRow[]) || [])
+        await fetchJobs(profile.company_id)
 
         channel = supabase
           .channel(`dashboard-jobs-${profile.company_id}`)
@@ -184,23 +197,13 @@ export default function DashboardJobsList() {
               filter: `company_id=eq.${profile.company_id}`,
             },
             async () => {
-              const { data: refreshedJobs, error: refreshError } = await supabase
-                .from('jobs')
-                .select(
-                  'id, title, address, status, priority, worker_name, company_id, updated_at'
-                )
-                .eq('company_id', profile.company_id)
-                .order('updated_at', { ascending: false })
-
-              if (!refreshError) {
-                setJobs((refreshedJobs as JobRow[]) || [])
-              }
+              await fetchJobs(profile.company_id)
             }
           )
           .subscribe()
 
         setLoading(false)
-      } catch (error) {
+      } catch {
         setErrorMessage('Unexpected error while loading jobs.')
         setLoading(false)
       }
@@ -214,6 +217,22 @@ export default function DashboardJobsList() {
       }
     }
   }, [])
+
+  const handleOpen = (job: JobRow) => {
+    setSelectedJob(job)
+    setModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+    setSelectedJob(null)
+  }
+
+  const handleSaved = async () => {
+    if (companyId) {
+      await fetchJobs(companyId)
+    }
+  }
 
   if (loading) {
     return (
@@ -239,89 +258,107 @@ export default function DashboardJobsList() {
   }
 
   return (
-    <div style={styles.card}>
-      <div style={styles.topRow}>
-        <div>
-          <h2 style={styles.cardTitle}>Live Jobs</h2>
-          <p style={styles.subtext}>
-            Company jobs update automatically without refresh.
-          </p>
+    <>
+      <div style={styles.card}>
+        <div style={styles.topRow}>
+          <div>
+            <h2 style={styles.cardTitle}>Live Jobs</h2>
+            <p style={styles.subtext}>
+              Company jobs update automatically without refresh.
+            </p>
+          </div>
+
+          <div style={styles.liveWrap}>
+            <span style={styles.livePulse} />
+            <span style={styles.liveText}>LIVE</span>
+          </div>
         </div>
 
-        <div style={styles.liveWrap}>
-          <span style={styles.livePulse} />
-          <span style={styles.liveText}>LIVE</span>
+        {sortedJobs.length === 0 ? (
+          <div style={styles.emptyBox}>
+            <p style={styles.emptyTitle}>No jobs yet</p>
+            <p style={styles.emptyText}>
+              When a new job is created, it will appear here instantly.
+            </p>
+          </div>
+        ) : (
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Job</th>
+                  <th style={styles.th}>Address</th>
+                  <th style={styles.th}>Worker</th>
+                  <th style={styles.th}>Status</th>
+                  <th style={styles.th}>Priority</th>
+                  <th style={styles.th}>Updated</th>
+                  <th style={styles.th}>Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {sortedJobs.map((job) => {
+                  const normalizedStatus = (job.status || '')
+                    .replace(/_/g, ' ')
+                    .toLowerCase()
+
+                  const normalizedPriority = (job.priority || '').toLowerCase()
+
+                  return (
+                    <tr key={job.id} style={styles.tr}>
+                      <td style={styles.tdStrong}>{job.title || 'Untitled job'}</td>
+                      <td style={styles.td}>{job.address || '-'}</td>
+                      <td style={styles.td}>{job.worker_name || 'Unassigned'}</td>
+                      <td style={styles.td}>
+                        <span
+                          style={{
+                            ...styles.badge,
+                            ...(statusStyles[normalizedStatus] || styles.defaultBadge),
+                          }}
+                        >
+                          {formatStatus(job.status)}
+                        </span>
+                      </td>
+                      <td style={styles.td}>
+                        <span
+                          style={{
+                            ...styles.badge,
+                            ...(priorityStyles[normalizedPriority] || styles.defaultBadge),
+                          }}
+                        >
+                          {formatPriority(job.priority)}
+                        </span>
+                      </td>
+                      <td style={styles.td}>{formatDate(job.updated_at)}</td>
+                      <td style={styles.td}>
+                        <button
+                          style={styles.actionBtn}
+                          onClick={() => handleOpen(job)}
+                        >
+                          Open
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div style={styles.footerInfo}>
+          <span>Company ID: {companyId || '-'}</span>
         </div>
       </div>
 
-      {sortedJobs.length === 0 ? (
-        <div style={styles.emptyBox}>
-          <p style={styles.emptyTitle}>No jobs yet</p>
-          <p style={styles.emptyText}>
-            When a new job is created, it will appear here instantly.
-          </p>
-        </div>
-      ) : (
-        <div style={styles.tableWrap}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Job</th>
-                <th style={styles.th}>Address</th>
-                <th style={styles.th}>Worker</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Priority</th>
-                <th style={styles.th}>Updated</th>
-                <th style={styles.th}>Action</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {sortedJobs.map((job) => {
-                const normalizedStatus = (job.status || '').replace(/_/g, ' ').toLowerCase()
-                const normalizedPriority = (job.priority || '').toLowerCase()
-
-                return (
-                  <tr key={job.id} style={styles.tr}>
-                    <td style={styles.tdStrong}>{job.title || 'Untitled job'}</td>
-                    <td style={styles.td}>{job.address || '-'}</td>
-                    <td style={styles.td}>{job.worker_name || 'Unassigned'}</td>
-                    <td style={styles.td}>
-                      <span
-                        style={{
-                          ...styles.badge,
-                          ...(statusStyles[normalizedStatus] || styles.defaultBadge),
-                        }}
-                      >
-                        {formatStatus(job.status)}
-                      </span>
-                    </td>
-                    <td style={styles.td}>
-                      <span
-                        style={{
-                          ...styles.badge,
-                          ...(priorityStyles[normalizedPriority] || styles.defaultBadge),
-                        }}
-                      >
-                        {formatPriority(job.priority)}
-                      </span>
-                    </td>
-                    <td style={styles.td}>{formatDate(job.updated_at)}</td>
-                    <td style={styles.td}>
-                      <button style={styles.actionBtn}>Open</button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <div style={styles.footerInfo}>
-        <span>Company ID: {companyId || '-'}</span>
-      </div>
-    </div>
+      <JobDetailsModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        onSaved={handleSaved}
+        companyId={companyId}
+        job={selectedJob}
+      />
+    </>
   )
 }
 

@@ -1,15 +1,36 @@
 'use client'
 
-import AppLayout from '../../../components/AppLayout'
-import WorkersMap from '../../../components/WorkersMap'
+import WorkersMap from '@/components/WorkersMap'
 
-export default function AdminMapPage() {
+export default function MapPage() {
   return (
-    <AppLayout>
-      <div style={{ padding: '20px' }}>
-        <h1 style={{ marginBottom: '16px' }}>Workers Map</h1>
-        <WorkersMap />
+    <main style={styles.page}>
+      <div style={styles.header}>
+        <h1 style={styles.title}>Map</h1>
+        <p style={styles.subtitle}>Live Workers Map</p>
       </div>
-    </AppLayout>
+
+      <WorkersMap title="Workers Location" />
+    </main>
   )
+}
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: '#eef2f7',
+    padding: '30px',
+  },
+  header: {
+    marginBottom: '24px',
+  },
+  title: {
+    fontSize: '32px',
+    fontWeight: '800',
+    color: '#163b7a',
+    marginBottom: '8px',
+  },
+  subtitle: {
+    color: '#6b7280',
+  },
 }

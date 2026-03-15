@@ -1,192 +1,299 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { translations, getLanguage, setLanguage } from '@/lib/i18n'
 
 export default function LoginPage() {
-
   const router = useRouter()
 
+  const [language, setLang] = useState(getLanguage())
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
+  const t = useMemo(() => translations[language], [language])
+
+  const changeLanguage = (lang) => {
+    setLang(lang)
+    setLanguage(lang)
+  }
+
   const handleLogin = async (e) => {
-
     e.preventDefault()
-
     setLoading(true)
     setErrorMessage('')
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
+    try {
+      const loginEmail = email.trim().toLowerCase()
 
-    if (error) {
-      setErrorMessage(error.message)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password,
+      })
+
+      if (error) {
+        setErrorMessage(error.message)
+        setLoading(false)
+        return
+      }
+
+      const user = data?.user
+
+      if (!user) {
+        setErrorMessage(t.userNotFound)
+        setLoading(false)
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) {
+        setErrorMessage(profileError.message)
+        setLoading(false)
+        return
+      }
+
+      const role = profile?.role
+
+      if (role === 'superadmin') {
+        router.push('/admin')
+        return
+      }
+
+      if (role === 'admin') {
+        router.push('/dashboard')
+        return
+      }
+
+      if (role === 'worker') {
+        router.push('/worker')
+        return
+      }
+
+      setErrorMessage(t.unknownRole)
       setLoading(false)
-      return
-    }
-
-    const userEmail = data?.user?.email
-
-    if (!userEmail) {
-      setErrorMessage('Login failed.')
+    } catch (err) {
+      setErrorMessage(err.message || 'Login error.')
       setLoading(false)
-      return
     }
-
-    // SUPERADMIN CHECK
-    const { data: superadmin } = await supabase
-      .from('superadmins')
-      .select('email')
-      .eq('email', userEmail)
-      .single()
-
-    if (superadmin) {
-      router.push('/admin')
-      return
-    }
-
-    // USER ROLE
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('email', userEmail)
-      .single()
-
-    if (!profile) {
-      setErrorMessage('User profile not found.')
-      setLoading(false)
-      return
-    }
-
-    if (profile.role === 'admin') {
-      router.push('/dashboard')
-      return
-    }
-
-    if (profile.role === 'worker') {
-      router.push('/worker')
-      return
-    }
-
-    setErrorMessage('Unknown user role.')
-    setLoading(false)
   }
 
   return (
     <main style={styles.page}>
       <div style={styles.card}>
+        <img src="/logo.png" alt="JobFlow" style={styles.logo} />
 
-        <img
-          src="/logo.png"
-          alt="JobFlow"
-          style={styles.logo}
-        />
+        <p style={styles.subtitle}>{t.subtitle}</p>
 
-        <p style={styles.subtitle}>
-          Handwerk Management System
-        </p>
-
-        <form onSubmit={handleLogin}>
-
+        <form onSubmit={handleLogin} style={styles.form}>
           <input
             type="email"
-            placeholder="E-Mail"
+            placeholder={t.email}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={styles.input}
+            autoComplete="email"
             required
           />
 
           <input
             type="password"
-            placeholder="Passwort"
+            placeholder={t.password}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={styles.input}
+            autoComplete="current-password"
             required
           />
 
-          {errorMessage && (
-            <p style={styles.error}>
-              {errorMessage}
-            </p>
-          )}
+          {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
 
-          <button
-            type="submit"
-            style={styles.button}
-            disabled={loading}
-          >
-            {loading ? 'Loading...' : 'Anmelden'}
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? t.loginLoading : t.login}
           </button>
-
         </form>
 
+        <div style={styles.linksBox}>
+          <Link href="/forgot-password" style={styles.link}>
+            {t.forgotPassword}
+          </Link>
+
+          <Link href="/register" style={styles.linkPrimary}>
+            {t.register}
+          </Link>
+        </div>
+
+        <div style={styles.languageRow}>
+          <button
+            type="button"
+            onClick={() => changeLanguage('de')}
+            style={{
+              ...styles.languageButton,
+              ...(language === 'de' ? styles.languageButtonActive : {}),
+            }}
+          >
+            {t.languageDe}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => changeLanguage('en')}
+            style={{
+              ...styles.languageButton,
+              ...(language === 'en' ? styles.languageButtonActive : {}),
+            }}
+          >
+            {t.languageEn}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => changeLanguage('bhs')}
+            style={{
+              ...styles.languageButton,
+              ...(language === 'bhs' ? styles.languageButtonActive : {}),
+            }}
+          >
+            {t.languageBhs}
+          </button>
+        </div>
       </div>
     </main>
   )
 }
 
 const styles = {
-
   page: {
     minHeight: '100vh',
-    background: '#eef2f7',
+    background: 'linear-gradient(180deg, #eef4fb 0%, #e7eef8 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '24px'
+    padding: '20px',
   },
 
   card: {
     width: '100%',
-    maxWidth: '420px',
-    background: '#fff',
-    padding: '32px',
-    borderRadius: '24px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-    textAlign: 'center'
+    maxWidth: '460px',
+    background: '#ffffff',
+    borderRadius: '28px',
+    padding: '36px 26px 28px 26px',
+    boxShadow: '0 18px 60px rgba(22,59,122,0.12)',
+    border: '1px solid rgba(22,59,122,0.06)',
   },
 
   logo: {
-    width: '140px',
-    marginBottom: '16px'
+    display: 'block',
+    width: '250px',
+    maxWidth: '88%',
+    height: 'auto',
+    margin: '0 auto 18px auto',
+    objectFit: 'contain',
   },
 
   subtitle: {
-    marginBottom: '24px',
-    color: '#475467'
+    textAlign: 'center',
+    color: '#667085',
+    marginBottom: '26px',
+    fontSize: '15px',
+    fontWeight: '500',
+  },
+
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
   },
 
   input: {
     width: '100%',
-    padding: '14px',
-    borderRadius: '10px',
-    border: '1px solid #d0d5dd',
-    marginBottom: '14px',
-    fontSize: '14px'
+    padding: '15px 16px',
+    borderRadius: '14px',
+    border: '1px solid #d7deea',
+    fontSize: '16px',
+    outline: 'none',
+    background: '#f9fbfe',
+    color: '#111827',
+    boxSizing: 'border-box',
   },
 
   button: {
+    marginTop: '4px',
     width: '100%',
-    padding: '14px',
-    borderRadius: '12px',
+    padding: '15px',
+    borderRadius: '14px',
     border: 'none',
     background: '#163b7a',
-    color: '#fff',
+    color: '#ffffff',
+    fontSize: '16px',
+    fontWeight: '800',
+    cursor: 'pointer',
+    boxShadow: '0 8px 22px rgba(22,59,122,0.22)',
+  },
+
+  linksBox: {
+    marginTop: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    alignItems: 'center',
+  },
+
+  link: {
+    color: '#163b7a',
+    textDecoration: 'none',
+    fontWeight: '600',
+    fontSize: '14px',
+  },
+
+  linkPrimary: {
+    color: '#163b7a',
+    textDecoration: 'none',
+    fontWeight: '800',
+    fontSize: '15px',
+  },
+
+  languageRow: {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '10px',
+    marginTop: '20px',
+    flexWrap: 'wrap',
+  },
+
+  languageButton: {
+    border: '1px solid #d7deea',
+    background: '#f9fbfe',
+    color: '#163b7a',
+    borderRadius: '999px',
+    padding: '8px 14px',
+    fontSize: '13px',
     fontWeight: '700',
-    cursor: 'pointer'
+    cursor: 'pointer',
+  },
+
+  languageButtonActive: {
+    background: '#163b7a',
+    color: '#fff',
+    border: '1px solid #163b7a',
   },
 
   error: {
-    color: 'red',
-    marginBottom: '10px'
-  }
-
+    color: '#d92d20',
+    fontSize: '14px',
+    margin: 0,
+    textAlign: 'center',
+    background: '#fff1f0',
+    border: '1px solid #ffd3cf',
+    borderRadius: '10px',
+    padding: '10px 12px',
+  },
 }

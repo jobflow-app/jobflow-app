@@ -1,85 +1,43 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import dynamic from 'next/dynamic'
-import { useRouter } from 'next/navigation'
-import AppLayout from '../../../components/AppLayout'
-import { getCurrentUserWithRole } from '../../../lib/auth'
-import { supabase } from '../../../lib/supabase'
-
-const WorkersMap = dynamic(() => import('../../../components/WorkersMap'), {
-  ssr: false,
-})
+import WorkersMap from '@/components/WorkersMap'
 
 export default function DashboardMapPage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [gpsRows, setGpsRows] = useState([])
-
-  useEffect(() => {
-    async function loadData() {
-      const { user, profile } = await getCurrentUserWithRole()
-
-      if (!user || !profile) {
-        router.push('/')
-        return
-      }
-
-      if (profile.role !== 'admin') {
-        router.push('/')
-        return
-      }
-
-      const { data, error } = await supabase
-        .from('worker_gps_status')
-        .select('*')
-        .eq('company_id', profile.company_id)
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null)
-        .order('created_at', { ascending: false })
-
-      if (!error) {
-        setGpsRows(data || [])
-      }
-
-      setLoading(false)
-    }
-
-    loadData()
-  }, [router])
-
-  if (loading) {
-    return <main style={loadingStyles.page}>Loading...</main>
-  }
-
   return (
-    <AppLayout
-      role="admin"
-      title="Map"
-      subtitle="Live worker positions"
-    >
-      <div style={styles.card}>
-        <WorkersMap workers={gpsRows} />
+    <main style={styles.page}>
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Company Map</h1>
+          <p style={styles.subtitle}>Pregled radnika tvoje firme</p>
+        </div>
+
+        <WorkersMap title="Company Workers Map" />
       </div>
-    </AppLayout>
+    </main>
   )
 }
 
-const loadingStyles = {
+const styles = {
   page: {
     minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
     background: '#eef2f7',
+    padding: '30px',
   },
-}
-
-const styles = {
-  card: {
-    background: '#fff',
-    borderRadius: '18px',
-    padding: '20px',
-    boxShadow: '0 8px 20px rgba(0,0,0,0.05)',
+  container: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+  },
+  header: {
+    marginBottom: '24px',
+  },
+  title: {
+    fontSize: '32px',
+    fontWeight: '800',
+    color: '#163b7a',
+    marginBottom: '8px',
+  },
+  subtitle: {
+    color: '#6b7280',
+    fontSize: '16px',
   },
 }

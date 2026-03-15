@@ -1,18 +1,16 @@
 'use client'
 
-import DashboardJobsList from '@/components/DashboardJobsList'
+import WorkersMap from '@/components/WorkersMap'
 
-export default function DashboardPage() {
+export default function DashboardMapPage() {
   return (
     <main style={styles.page}>
       <div style={styles.header}>
-        <h1 style={styles.title}>Admin Dashboard</h1>
-        <p style={styles.subtitle}>
-          Live pregled poslova i statusa u realnom vremenu.
-        </p>
+        <h1 style={styles.title}>Workers Map</h1>
+        <p style={styles.subtitle}>Live GPS pregled radnika</p>
       </div>
 
-      <DashboardJobsList />
+      <WorkersMap title="Live Workers Map" />
     </main>
   )
 }
@@ -27,14 +25,12 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '24px',
   },
   title: {
-    fontSize: '34px',
+    fontSize: '32px',
     fontWeight: 800,
     color: '#163b7a',
-    margin: 0,
+    marginBottom: '8px',
   },
   subtitle: {
-    marginTop: '8px',
     color: '#6b7280',
-    fontSize: '15px',
   },
 }

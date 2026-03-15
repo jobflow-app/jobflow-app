@@ -43,7 +43,7 @@ export default function HomePage() {
       return
     }
 
-    if (userEmail === 'info@vs-technik.de') {
+    if (userEmail === 'velibor.savicc@gmail.com') {
       router.push('/admin')
       return
     }

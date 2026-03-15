@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -15,26 +15,29 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
-    let mounted = true
+    const checkExistingSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession()
 
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession()
+        if (error) {
+          console.error('Session check error:', error.message)
+          setCheckingSession(false)
+          return
+        }
 
-      if (!mounted) return
+        if (data?.session?.user) {
+          router.replace('/dashboard')
+          return
+        }
 
-      if (data?.session?.user) {
-        router.replace('/dashboard')
-        return
+        setCheckingSession(false)
+      } catch (err) {
+        console.error('Unexpected session check error:', err)
+        setCheckingSession(false)
       }
-
-      setCheckingSession(false)
     }
 
-    checkSession()
-
-    return () => {
-      mounted = false
-    }
+    checkExistingSession()
   }, [router])
 
   const handleLogin = async (e) => {
@@ -42,26 +45,35 @@ export default function LoginPage() {
     setLoading(true)
     setErrorMessage('')
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-    if (error) {
-      setErrorMessage(error.message)
+      if (error) {
+        setErrorMessage(error.message)
+        return
+      }
+
+      if (data?.user) {
+        router.replace('/dashboard')
+      } else {
+        setErrorMessage('Login failed.')
+      }
+    } catch (err) {
+      console.error('Login error:', err)
+      setErrorMessage('Unexpected error. Please try again.')
+    } finally {
       setLoading(false)
-      return
     }
-
-    router.replace('/dashboard')
   }
 
   if (checkingSession) {
     return (
       <main style={styles.page}>
         <div style={styles.card}>
-          <h1 style={styles.title}>JobFlow</h1>
-          <p style={styles.subtitle}>Loading...</p>
+          <p style={styles.loadingText}>Loading...</p>
         </div>
       </main>
     )
@@ -70,8 +82,14 @@ export default function LoginPage() {
   return (
     <main style={styles.page}>
       <form onSubmit={handleLogin} style={styles.card}>
-        <h1 style={styles.title}>JobFlow</h1>
-        <p style={styles.subtitle}>Prijava</p>
+        <img
+          src="/logo.png"
+          alt="JobFlow"
+          style={styles.logo}
+        />
+
+        <h1 style={styles.title}>JobFlow Login</h1>
+        <p style={styles.subtitle}>Prijava u sistem</p>
 
         <input
           type="email"
@@ -91,17 +109,15 @@ export default function LoginPage() {
           required
         />
 
-        <div style={styles.linkRow}>
-          <Link href="/forgot-password" style={styles.link}>
-            Passwort vergessen?
-          </Link>
-        </div>
-
         {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
 
         <button type="submit" style={styles.button} disabled={loading}>
-          {loading ? 'Signing in...' : 'Anmelden'}
+          {loading ? 'Loading...' : 'Anmelden'}
         </button>
+
+        <Link href="/forgot-password" style={styles.link}>
+          Passwort vergessen?
+        </Link>
       </form>
     </main>
   )
@@ -118,57 +134,67 @@ const styles = {
   },
   card: {
     width: '100%',
-    maxWidth: '420px',
-    background: '#fff',
+    maxWidth: '430px',
+    background: '#ffffff',
     borderRadius: '24px',
     padding: '32px',
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
+  },
+  logo: {
+    width: '120px',
+    margin: '0 auto 8px',
+    objectFit: 'contain',
   },
   title: {
-    fontSize: '32px',
+    fontSize: '30px',
     fontWeight: '800',
     color: '#163b7a',
-    marginBottom: '8px',
     textAlign: 'center',
+    margin: 0,
   },
   subtitle: {
-    color: '#6b7280',
-    marginBottom: '24px',
     textAlign: 'center',
+    color: '#6b7280',
+    marginTop: 0,
+    marginBottom: '6px',
   },
   input: {
     width: '100%',
-    padding: '14px 16px',
-    borderRadius: '14px',
+    padding: '14px',
+    borderRadius: '12px',
     border: '1px solid #d1d5db',
-    marginBottom: '14px',
-    fontSize: '16px',
+    fontSize: '15px',
     outline: 'none',
-  },
-  linkRow: {
-    display: 'flex',
-    justifyContent: 'flex-end',
-    marginBottom: '16px',
-  },
-  link: {
-    color: '#163b7a',
-    textDecoration: 'none',
-    fontWeight: '600',
-    fontSize: '14px',
   },
   button: {
     width: '100%',
+    padding: '14px',
+    borderRadius: '12px',
     border: 'none',
     background: '#163b7a',
     color: '#fff',
+    fontSize: '15px',
     fontWeight: '700',
-    fontSize: '16px',
-    padding: '14px',
-    borderRadius: '14px',
     cursor: 'pointer',
   },
   error: {
-    color: '#b91c1c',
-    marginBottom: '12px',
+    color: '#dc2626',
+    fontSize: '14px',
+    margin: 0,
+    textAlign: 'center',
+  },
+  link: {
+    textAlign: 'center',
+    color: '#163b7a',
+    textDecoration: 'none',
+    fontSize: '14px',
+  },
+  loadingText: {
+    textAlign: 'center',
+    color: '#6b7280',
+    fontSize: '16px',
   },
 }

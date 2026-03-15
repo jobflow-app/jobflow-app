@@ -1,56 +1,65 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-export default function LoginPage() {
-
+export default function HomePage() {
   const router = useRouter()
 
-  const [email,setEmail] = useState('')
-  const [password,setPassword] = useState('')
-  const [error,setError] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
-  const login = async (e) => {
-
+  const handleLogin = async (e) => {
     e.preventDefault()
-    setError('')
+    setLoading(true)
+    setErrorMessage('')
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password
+      password,
     })
 
-    if(error){
-      setError(error.message)
+    if (error) {
+      setErrorMessage(error.message)
+      setLoading(false)
       return
     }
 
-    const user = data.user
+    const user = data?.user
 
-    const { data:profile } = await supabase
+    if (!user) {
+      setErrorMessage('Login failed.')
+      setLoading(false)
+      return
+    }
+
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    if(!profile){
-      setError('Profile not found')
+    if (profileError || !profile) {
+      setErrorMessage('Profile not found.')
+      setLoading(false)
       return
     }
 
-    if(profile.role === 'superadmin'){
+    if (profile.role === 'superadmin') {
       router.push('/superadmin')
       return
     }
 
-    if(profile.role === 'admin'){
+    if (profile.role === 'admin') {
       router.push('/dashboard')
       return
     }
 
-    if(profile.role === 'worker'){
+    if (profile.role === 'worker') {
       router.push('/worker')
       return
     }
@@ -59,107 +68,127 @@ export default function LoginPage() {
   }
 
   return (
-
     <main style={styles.page}>
-
       <div style={styles.card}>
-
-        <img src="/logo.png" style={styles.logo}/>
+        <img src="/logo.png" alt="JobFlow" style={styles.logo} />
 
         <h1 style={styles.title}>JobFlow</h1>
+        <p style={styles.subtitle}>Handwerk-Managementsystem</p>
 
-        <form onSubmit={login} style={styles.form}>
-
+        <form onSubmit={handleLogin} style={styles.form}>
           <input
             type="email"
-            placeholder="Email"
+            placeholder="E-Mail"
             value={email}
-            onChange={(e)=>setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             style={styles.input}
+            required
           />
 
           <input
             type="password"
             placeholder="Password"
             value={password}
-            onChange={(e)=>setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             style={styles.input}
+            required
           />
 
-          <button style={styles.button}>
-            Login
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? 'Loading...' : 'Login'}
           </button>
-
         </form>
 
-        {error && <p style={styles.error}>{error}</p>}
+        {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
 
+        <div style={styles.links}>
+          <Link href="/forgot-password" style={styles.link}>
+            Forgot password?
+          </Link>
+
+          <Link href="/register" style={styles.link}>
+            Start 30-day free trial
+          </Link>
+        </div>
       </div>
-
     </main>
-
   )
-
 }
 
 const styles = {
-
-page:{
-minHeight:'100vh',
-display:'flex',
-justifyContent:'center',
-alignItems:'center',
-background:'#eef2f7'
-},
-
-card:{
-width:'420px',
-background:'#fff',
-padding:'40px',
-borderRadius:'20px',
-boxShadow:'0 10px 30px rgba(0,0,0,0.08)'
-},
-
-logo:{
-width:'120px',
-display:'block',
-margin:'0 auto 20px'
-},
-
-title:{
-textAlign:'center',
-fontSize:'30px',
-fontWeight:'800',
-color:'#163b7a',
-marginBottom:'20px'
-},
-
-form:{
-display:'flex',
-flexDirection:'column',
-gap:'12px'
-},
-
-input:{
-padding:'14px',
-borderRadius:'12px',
-border:'1px solid #ddd'
-},
-
-button:{
-background:'#163b7a',
-color:'#fff',
-border:'none',
-padding:'14px',
-borderRadius:'12px',
-fontWeight:'700',
-cursor:'pointer'
-},
-
-error:{
-color:'red',
-marginTop:'10px',
-textAlign:'center'
-}
-
+  page: {
+    minHeight: '100vh',
+    background: '#eef2f7',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+  },
+  card: {
+    width: '100%',
+    maxWidth: '430px',
+    background: '#fff',
+    borderRadius: '24px',
+    padding: '32px',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+  },
+  logo: {
+    width: '130px',
+    display: 'block',
+    margin: '0 auto 20px',
+  },
+  title: {
+    textAlign: 'center',
+    fontSize: '32px',
+    fontWeight: '800',
+    color: '#163b7a',
+    marginBottom: '8px',
+  },
+  subtitle: {
+    textAlign: 'center',
+    color: '#6b7280',
+    marginBottom: '24px',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
+  },
+  input: {
+    width: '100%',
+    padding: '14px 16px',
+    borderRadius: '14px',
+    border: '1px solid #d1d5db',
+    fontSize: '16px',
+    outline: 'none',
+  },
+  button: {
+    width: '100%',
+    background: '#163b7a',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '14px',
+    padding: '14px',
+    fontSize: '16px',
+    fontWeight: '700',
+    cursor: 'pointer',
+  },
+  error: {
+    color: '#dc2626',
+    textAlign: 'center',
+    marginTop: '16px',
+    fontWeight: '600',
+  },
+  links: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+    marginTop: '18px',
+    textAlign: 'center',
+  },
+  link: {
+    color: '#163b7a',
+    fontWeight: '700',
+    textDecoration: 'none',
+  },
 }

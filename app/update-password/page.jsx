@@ -1,33 +1,22 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 
 export default function UpdatePasswordPage() {
   const router = useRouter()
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault()
-    setErrorMessage('')
-    setSuccessMessage('')
-
-    if (password.length < 6) {
-      setErrorMessage('Lozinka mora imati najmanje 6 karaktera.')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setErrorMessage('Lozinke se ne poklapaju.')
-      return
-    }
-
     setLoading(true)
+    setMessage('')
+    setErrorMessage('')
 
     const { error } = await supabase.auth.updateUser({
       password,
@@ -39,44 +28,42 @@ export default function UpdatePasswordPage() {
       return
     }
 
-    setSuccessMessage('Lozinka je uspješno promijenjena.')
+    setMessage('Šifra je uspješno promijenjena.')
 
     setTimeout(() => {
-      router.replace('/login')
+      router.push('/')
     }, 1500)
   }
 
   return (
     <main style={styles.page}>
-      <form onSubmit={handleUpdatePassword} style={styles.card}>
-        <h1 style={styles.title}>Neues Passwort</h1>
-        <p style={styles.subtitle}>Unesi novu lozinku</p>
+      <div style={styles.card}>
+        <img src="/logo.png" alt="JobFlow" style={styles.logo} />
 
-        <input
-          type="password"
-          placeholder="Neues Passwort"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={styles.input}
-          required
-        />
+        <p style={styles.subtitle}>Nova lozinka</p>
 
-        <input
-          type="password"
-          placeholder="Passwort bestätigen"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          style={styles.input}
-          required
-        />
+        <form onSubmit={handleUpdatePassword} style={styles.form}>
+          <input
+            type="password"
+            placeholder="Unesi novu lozinku"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={styles.input}
+            required
+          />
 
-        {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
-        {successMessage ? <p style={styles.success}>{successMessage}</p> : null}
+          {message ? <p style={styles.success}>{message}</p> : null}
+          {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
 
-        <button type="submit" style={styles.button} disabled={loading}>
-          {loading ? 'Saving...' : 'Passwort ändern'}
-        </button>
-      </form>
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? 'Spremam...' : 'Spremi novu lozinku'}
+          </button>
+        </form>
+
+        <Link href="/" style={styles.link}>
+          Nazad na login
+        </Link>
+      </div>
     </main>
   )
 }
@@ -92,50 +79,63 @@ const styles = {
   },
   card: {
     width: '100%',
-    maxWidth: '420px',
+    maxWidth: '430px',
     background: '#fff',
     borderRadius: '24px',
     padding: '32px',
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
   },
-  title: {
-    fontSize: '28px',
-    fontWeight: '800',
-    color: '#163b7a',
-    marginBottom: '8px',
-    textAlign: 'center',
+  logo: {
+    display: 'block',
+    width: '220px',
+    maxWidth: '100%',
+    height: 'auto',
+    margin: '0 auto 14px auto',
   },
   subtitle: {
+    textAlign: 'center',
     color: '#6b7280',
     marginBottom: '24px',
-    textAlign: 'center',
+  },
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '14px',
   },
   input: {
-    width: '100%',
     padding: '14px 16px',
-    borderRadius: '14px',
+    borderRadius: '12px',
     border: '1px solid #d1d5db',
-    marginBottom: '14px',
     fontSize: '16px',
-    outline: 'none',
   },
   button: {
-    width: '100%',
+    padding: '14px',
+    borderRadius: '12px',
     border: 'none',
     background: '#163b7a',
     color: '#fff',
-    fontWeight: '700',
     fontSize: '16px',
-    padding: '14px',
-    borderRadius: '14px',
+    fontWeight: '700',
     cursor: 'pointer',
   },
-  error: {
-    color: '#b91c1c',
-    marginBottom: '12px',
+  link: {
+    display: 'block',
+    textAlign: 'center',
+    marginTop: '18px',
+    color: '#163b7a',
+    textDecoration: 'none',
+    fontWeight: '600',
   },
   success: {
-    color: '#166534',
-    marginBottom: '12px',
+    color: 'green',
+    fontSize: '14px',
+    margin: 0,
+    textAlign: 'center',
+  },
+  error: {
+    color: 'crimson',
+    fontSize: '14px',
+    margin: 0,
+    textAlign: 'center',
   },
 }

@@ -28,79 +28,67 @@ export default function Page() {
     setLoading(true)
     setErrorMessage('')
 
-    const normalizedEmail = email.trim().toLowerCase()
+    try {
+      const loginEmail = email.trim().toLowerCase()
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
-    })
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password,
+      })
 
-    if (loginError) {
-      setErrorMessage(loginError.message)
+      if (error) {
+        setErrorMessage(error.message)
+        setLoading(false)
+        return
+      }
+
+      const user = data?.user
+
+      if (!user) {
+        setErrorMessage('Login user not found.')
+        setLoading(false)
+        return
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, email')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) {
+        setErrorMessage(profileError.message)
+        setLoading(false)
+        return
+      }
+
+      if (!profile?.role) {
+        setErrorMessage('Role not found in profiles.')
+        setLoading(false)
+        return
+      }
+
+      if (profile.role === 'superadmin') {
+        router.replace('/superadmin')
+        return
+      }
+
+      if (profile.role === 'admin') {
+        router.replace('/dashboard')
+        return
+      }
+
+      if (profile.role === 'worker') {
+        router.replace('/worker')
+        return
+      }
+
+      setErrorMessage(`Unknown role: ${profile.role}`)
       setLoading(false)
-      return
-    }
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      setErrorMessage(t.userNotFound)
+    } catch (err) {
+      setErrorMessage(err.message || 'Unexpected login error.')
       setLoading(false)
-      return
     }
-
-    const userEmail = user.email?.toLowerCase().trim()
-
-    const { data: superadmin, error: superadminError } = await supabase
-      .from('superadmins')
-      .select('email')
-      .eq('email', userEmail)
-      .maybeSingle()
-
-    if (superadminError) {
-      setErrorMessage(superadminError.message)
-      setLoading(false)
-      return
-    }
-
-    if (superadmin) {
-      router.push('/superadmin')
-      return
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    if (profileError) {
-      setErrorMessage(profileError.message)
-      setLoading(false)
-      return
-    }
-
-    if (!profile) {
-      setErrorMessage(t.profileNotFound)
-      setLoading(false)
-      return
-    }
-
-    if (profile.role === 'admin') {
-      router.push('/dashboard')
-      return
-    }
-
-    if (profile.role === 'worker') {
-      router.push('/worker')
-      return
-    }
-
-    setErrorMessage(t.unknownRole)
-    setLoading(false)
   }
 
   return (
@@ -218,7 +206,6 @@ const styles = {
     fontSize: '16px',
     fontWeight: '800',
     cursor: 'pointer',
-    boxShadow: '0 8px 22px rgba(22,59,122,0.22)',
   },
   linksBox: {
     marginTop: '20px',

@@ -1,128 +1,51 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../lib/supabase'
+import { getCurrentUserWithRole } from '../lib/auth'
 
-export default function HomePage() {
+export default function AdminPage() {
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [allowed, setAllowed] = useState(false)
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  useEffect(() => {
+    async function checkAccess() {
+      const { user, profile } = await getCurrentUserWithRole()
 
-  async function handleLogin(e) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+      if (!user || !profile) {
+        router.push('/')
+        return
+      }
 
-    if (!supabase) {
-      setError('Supabase is not connected.')
+      if (profile.role !== 'superadmin') {
+        router.push('/dashboard')
+        return
+      }
+
+      setAllowed(true)
       setLoading(false)
-      return
     }
 
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    checkAccess()
+  }, [router])
 
-    if (loginError) {
-      setError(loginError.message)
-      setLoading(false)
-      return
-    }
-
-    const userEmail = data?.user?.email
-
-    if (!userEmail) {
-      setError('Login failed.')
-      setLoading(false)
-      return
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('email', userEmail)
-      .maybeSingle()
-
-    if (profileError) {
-      setError(profileError.message)
-      setLoading(false)
-      return
-    }
-
-    if (!profile?.role) {
-      setError('No role found for this user.')
-      setLoading(false)
-      return
-    }
-
-    if (profile.role === 'superadmin') {
-      router.push('/admin')
-      return
-    }
-
-    if (profile.role === 'worker') {
-      router.push('/worker')
-      return
-    }
-
-    router.push('/dashboard')
+  if (loading) {
+    return (
+      <main style={styles.page}>
+        <p>Loading...</p>
+      </main>
+    )
   }
+
+  if (!allowed) return null
 
   return (
     <main style={styles.page}>
       <div style={styles.card}>
-        <img
-          src="/logo.png"
-          alt="JobFlow"
-          style={styles.logo}
-        />
-
-        <p style={styles.subtitle}>
-          Handwerk-Managementsystem
-        </p>
-
-        <form onSubmit={handleLogin}>
-          <input
-            type="email"
-            placeholder="E-Mail"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Passwort"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-            required
-          />
-
-          <button style={styles.button} disabled={loading}>
-            {loading ? 'Loading...' : 'Anmelden'}
-          </button>
-        </form>
-
-        {error ? <p style={styles.error}>{error}</p> : null}
-
-        <div style={styles.signupBlock}>
-          <p style={styles.signupText}>Noch kein Konto?</p>
-          <Link href="/signup" style={styles.signupButton}>
-            30 Tage kostenlos testen
-          </Link>
-        </div>
-
-        <p style={styles.languages}>
-          Deutsch | English | BHS
-        </p>
+        <h1 style={styles.title}>JobFlow Superadmin</h1>
+        <p style={styles.text}>Welcome, superadmin.</p>
+        <p style={styles.text}>Here you manage companies, plans and trials.</p>
       </div>
     </main>
   )
@@ -131,71 +54,28 @@ export default function HomePage() {
 const styles = {
   page: {
     minHeight: '100vh',
+    background: '#eef2f7',
+    padding: '24px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#eef2f7',
-    padding: '24px',
   },
   card: {
     width: '100%',
-    maxWidth: '420px',
+    maxWidth: '700px',
     background: '#fff',
     borderRadius: '24px',
-    padding: '40px',
-    textAlign: 'center',
+    padding: '32px',
     boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
   },
-  logo: {
-    width: '320px',
-    marginBottom: '12px',
-  },
-  subtitle: {
-    marginBottom: '24px',
-    color: '#6b7280',
-    fontSize: '18px',
-  },
-  input: {
-    width: '100%',
-    padding: '14px',
-    marginBottom: '12px',
-    borderRadius: '12px',
-    border: '1px solid #d1d5db',
-    boxSizing: 'border-box',
-  },
-  button: {
-    width: '100%',
-    padding: '14px',
-    borderRadius: '12px',
-    background: '#163b7a',
-    color: '#fff',
-    fontWeight: '700',
-    border: 'none',
-    cursor: 'pointer',
-  },
-  error: {
-    marginTop: '10px',
-    color: 'red',
-  },
-  signupBlock: {
-    marginTop: '18px',
-  },
-  signupText: {
-    color: '#6b7280',
-    marginBottom: '8px',
-  },
-  signupButton: {
-    display: 'inline-block',
-    textDecoration: 'none',
-    background: '#eef2f7',
+  title: {
+    fontSize: '32px',
+    fontWeight: '800',
     color: '#163b7a',
-    padding: '12px 18px',
-    borderRadius: '12px',
-    fontWeight: '700',
+    marginBottom: '16px',
   },
-  languages: {
-    marginTop: '14px',
-    fontSize: '14px',
-    color: '#6b7280',
+  text: {
+    color: '#374151',
+    marginBottom: '10px',
   },
 }

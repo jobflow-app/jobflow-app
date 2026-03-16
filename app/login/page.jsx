@@ -126,7 +126,7 @@ const styles = {
     textAlign: 'center',
   },
   logo: {
-    width: '180px',
+    width: '350px',
     marginBottom: '20px',
   },
   divider: {

@@ -8,7 +8,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     router.replace('/admin/dashboard')
-  }, [])
+  }, [router])
 
   return null
 }

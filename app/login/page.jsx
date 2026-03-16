@@ -1,299 +1,192 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import { translations, getLanguage, setLanguage } from '@/lib/i18n'
+import {
+  authTexts,
+  getInitialLanguage,
+  saveLanguage,
+} from '@/lib/auth-i18n'
 
 export default function LoginPage() {
   const router = useRouter()
 
-  const [language, setLang] = useState(getLanguage())
+  const [language, setLanguageState] = useState('de')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const t = useMemo(() => translations[language], [language])
+  useEffect(() => {
+    setLanguageState(getInitialLanguage())
+  }, [])
 
-  const changeLanguage = (lang) => {
-    setLang(lang)
-    setLanguage(lang)
+  const t = useMemo(() => authTexts[language] || authTexts.de, [language])
+
+  function handleLanguageChange(nextLanguage) {
+    setLanguageState(nextLanguage)
+    saveLanguage(nextLanguage)
   }
 
-  const handleLogin = async (e) => {
+  async function handleLogin(e) {
     e.preventDefault()
-    setLoading(true)
     setErrorMessage('')
 
-    try {
-      const loginEmail = email.trim().toLowerCase()
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password,
-      })
-
-      if (error) {
-        setErrorMessage(error.message)
-        setLoading(false)
-        return
-      }
-
-      const user = data?.user
-
-      if (!user) {
-        setErrorMessage(t.userNotFound)
-        setLoading(false)
-        return
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      if (profileError) {
-        setErrorMessage(profileError.message)
-        setLoading(false)
-        return
-      }
-
-      const role = profile?.role
-
-      if (role === 'superadmin') {
-        router.push('/admin')
-        return
-      }
-
-      if (role === 'admin') {
-        router.push('/dashboard')
-        return
-      }
-
-      if (role === 'worker') {
-        router.push('/worker')
-        return
-      }
-
-      setErrorMessage(t.unknownRole)
-      setLoading(false)
-    } catch (err) {
-      setErrorMessage(err.message || 'Login error.')
-      setLoading(false)
+    if (!email || !password) {
+      setErrorMessage(t.requiredFields)
+      return
     }
+
+    setLoading(true)
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      setErrorMessage(error.message || t.genericError)
+      setLoading(false)
+      return
+    }
+
+    const userEmail = data?.user?.email
+
+    if (!userEmail) {
+      setErrorMessage(t.genericError)
+      setLoading(false)
+      return
+    }
+
+    const { data: superadminRow } = await supabase
+      .from('superadmins')
+      .select('email')
+      .eq('email', userEmail)
+      .maybeSingle()
+
+    if (superadminRow) {
+      router.push('/superadmin')
+      return
+    }
+
+    const { data: profileRow } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('email', userEmail)
+      .maybeSingle()
+
+    if (profileRow?.role === 'worker') {
+      router.push('/worker')
+      return
+    }
+
+    router.push('/dashboard')
   }
 
   return (
-    <main style={styles.page}>
-      <div style={styles.card}>
-        <img src="/logo.png" alt="JobFlow" style={styles.logo} />
+    <AuthLayout
+      title={t.loginTitle}
+      subtitle={t.loginSubtitle}
+      language={language}
+      setLanguage={handleLanguageChange}
+    >
+      <form onSubmit={handleLogin} style={styles.form}>
+        <label style={styles.label}>{t.email}</label>
+        <input
+          type="email"
+          placeholder="user@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          style={styles.input}
+        />
 
-        <p style={styles.subtitle}>{t.subtitle}</p>
+        <label style={styles.label}>{t.password}</label>
+        <input
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={styles.input}
+        />
 
-        <form onSubmit={handleLogin} style={styles.form}>
-          <input
-            type="email"
-            placeholder={t.email}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={styles.input}
-            autoComplete="email"
-            required
-          />
+        {errorMessage ? (
+          <p style={styles.error}>{errorMessage}</p>
+        ) : null}
 
-          <input
-            type="password"
-            placeholder={t.password}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-            autoComplete="current-password"
-            required
-          />
+        <button type="submit" style={styles.button} disabled={loading}>
+          {loading ? t.loading : t.login}
+        </button>
 
-          {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
-
-          <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? t.loginLoading : t.login}
-          </button>
-        </form>
-
-        <div style={styles.linksBox}>
+        <div style={styles.linksRow}>
           <Link href="/forgot-password" style={styles.link}>
             {t.forgotPassword}
           </Link>
 
-          <Link href="/register" style={styles.linkPrimary}>
-            {t.register}
+          <Link href="/register" style={styles.link}>
+            {t.createAccount}
           </Link>
         </div>
-
-        <div style={styles.languageRow}>
-          <button
-            type="button"
-            onClick={() => changeLanguage('de')}
-            style={{
-              ...styles.languageButton,
-              ...(language === 'de' ? styles.languageButtonActive : {}),
-            }}
-          >
-            {t.languageDe}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => changeLanguage('en')}
-            style={{
-              ...styles.languageButton,
-              ...(language === 'en' ? styles.languageButtonActive : {}),
-            }}
-          >
-            {t.languageEn}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => changeLanguage('bhs')}
-            style={{
-              ...styles.languageButton,
-              ...(language === 'bhs' ? styles.languageButtonActive : {}),
-            }}
-          >
-            {t.languageBhs}
-          </button>
-        </div>
-      </div>
-    </main>
+      </form>
+    </AuthLayout>
   )
 }
 
 const styles = {
-  page: {
-    minHeight: '100vh',
-    background: 'linear-gradient(180deg, #eef4fb 0%, #e7eef8 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px',
-  },
-
-  card: {
-    width: '100%',
-    maxWidth: '460px',
-    background: '#ffffff',
-    borderRadius: '28px',
-    padding: '36px 26px 28px 26px',
-    boxShadow: '0 18px 60px rgba(22,59,122,0.12)',
-    border: '1px solid rgba(22,59,122,0.06)',
-  },
-
-  logo: {
-    display: 'block',
-    width: '250px',
-    maxWidth: '88%',
-    height: 'auto',
-    margin: '0 auto 18px auto',
-    objectFit: 'contain',
-  },
-
-  subtitle: {
-    textAlign: 'center',
-    color: '#667085',
-    marginBottom: '26px',
-    fontSize: '15px',
-    fontWeight: '500',
-  },
-
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '14px',
   },
-
+  label: {
+    fontSize: '15px',
+    fontWeight: 700,
+    color: '#294770',
+    marginBottom: '8px',
+    marginTop: '4px',
+  },
   input: {
-    width: '100%',
-    padding: '15px 16px',
+    height: '56px',
     borderRadius: '14px',
-    border: '1px solid #d7deea',
+    border: '1px solid #d6e1ee',
+    padding: '0 16px',
     fontSize: '16px',
     outline: 'none',
-    background: '#f9fbfe',
-    color: '#111827',
-    boxSizing: 'border-box',
+    background: '#fbfdff',
+    color: '#163b7a',
+    marginBottom: '18px',
+    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
   },
-
   button: {
-    marginTop: '4px',
-    width: '100%',
-    padding: '15px',
-    borderRadius: '14px',
+    height: '58px',
     border: 'none',
-    background: '#163b7a',
-    color: '#ffffff',
-    fontSize: '16px',
-    fontWeight: '800',
+    borderRadius: '16px',
+    background: 'linear-gradient(180deg, #1f74f2 0%, #0f56cf 100%)',
+    color: '#fff',
+    fontSize: '24px',
+    fontWeight: 800,
     cursor: 'pointer',
-    boxShadow: '0 8px 22px rgba(22,59,122,0.22)',
+    marginTop: '8px',
+    boxShadow: '0 16px 28px rgba(15, 86, 207, 0.24)',
   },
-
-  linksBox: {
-    marginTop: '20px',
+  linksRow: {
     display: 'flex',
-    flexDirection: 'column',
+    justifyContent: 'space-between',
     gap: '12px',
-    alignItems: 'center',
-  },
-
-  link: {
-    color: '#163b7a',
-    textDecoration: 'none',
-    fontWeight: '600',
-    fontSize: '14px',
-  },
-
-  linkPrimary: {
-    color: '#163b7a',
-    textDecoration: 'none',
-    fontWeight: '800',
-    fontSize: '15px',
-  },
-
-  languageRow: {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '10px',
-    marginTop: '20px',
+    marginTop: '18px',
     flexWrap: 'wrap',
   },
-
-  languageButton: {
-    border: '1px solid #d7deea',
-    background: '#f9fbfe',
-    color: '#163b7a',
-    borderRadius: '999px',
-    padding: '8px 14px',
-    fontSize: '13px',
-    fontWeight: '700',
-    cursor: 'pointer',
+  link: {
+    color: '#1f63d0',
+    textDecoration: 'none',
+    fontWeight: 700,
+    fontSize: '15px',
   },
-
-  languageButtonActive: {
-    background: '#163b7a',
-    color: '#fff',
-    border: '1px solid #163b7a',
-  },
-
   error: {
-    color: '#d92d20',
+    margin: '0 0 12px',
+    color: '#c62828',
+    fontWeight: 600,
     fontSize: '14px',
-    margin: 0,
-    textAlign: 'center',
-    background: '#fff1f0',
-    border: '1px solid #ffd3cf',
-    borderRadius: '10px',
-    padding: '10px 12px',
   },
 }

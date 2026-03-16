@@ -1,298 +1,175 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import { translations, getLanguage, setLanguage } from '@/lib/i18n'
+import {
+  authTexts,
+  getInitialLanguage,
+  saveLanguage,
+} from '@/lib/auth-i18n'
 
 export default function UpdatePasswordPage() {
-  const router = useRouter()
-
-  const [language, setLang] = useState(getLanguage())
+  const [language, setLanguageState] = useState('de')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
-  const t = useMemo(() => translations[language], [language])
+  useEffect(() => {
+    setLanguageState(getInitialLanguage())
+  }, [])
 
-  const changeLanguage = (lang) => {
-    setLang(lang)
-    setLanguage(lang)
+  const t = useMemo(() => authTexts[language] || authTexts.de, [language])
+
+  function handleLanguageChange(nextLanguage) {
+    setLanguageState(nextLanguage)
+    saveLanguage(nextLanguage)
   }
 
-  const handleUpdatePassword = async (e) => {
+  async function handleUpdatePassword(e) {
     e.preventDefault()
-    setLoading(true)
     setErrorMessage('')
     setSuccessMessage('')
 
+    if (!password || !confirmPassword) {
+      setErrorMessage(t.requiredFields)
+      return
+    }
+
+    if (password.length < 6) {
+      setErrorMessage(t.passwordTooShort)
+      return
+    }
+
     if (password !== confirmPassword) {
-      setErrorMessage(
-        language === 'de'
-          ? 'Passwörter stimmen nicht überein.'
-          : language === 'en'
-            ? 'Passwords do not match.'
-            : 'Lozinke se ne poklapaju.'
-      )
+      setErrorMessage(t.passwordsNotMatch)
+      return
+    }
+
+    setLoading(true)
+
+    const { error } = await supabase.auth.updateUser({
+      password,
+    })
+
+    if (error) {
+      setErrorMessage(error.message || t.genericError)
       setLoading(false)
       return
     }
 
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password,
-      })
-
-      if (error) {
-        setErrorMessage(error.message)
-        setLoading(false)
-        return
-      }
-
-      setSuccessMessage(
-        language === 'de'
-          ? 'Passwort erfolgreich geändert.'
-          : language === 'en'
-            ? 'Password updated successfully.'
-            : 'Lozinka je uspješno promijenjena.'
-      )
-
-      setLoading(false)
-
-      setTimeout(() => {
-        router.push('/login')
-      }, 1800)
-    } catch (err) {
-      setErrorMessage(err.message || 'Update password error.')
-      setLoading(false)
-    }
+    setSuccessMessage(t.passwordUpdated)
+    setLoading(false)
   }
 
   return (
-    <main style={styles.page}>
-      <div style={styles.card}>
-        <img src="/logo.png" alt="JobFlow" style={styles.logo} />
+    <AuthLayout
+      title={t.updateTitle}
+      subtitle={t.updateSubtitle}
+      language={language}
+      setLanguage={handleLanguageChange}
+    >
+      <form onSubmit={handleUpdatePassword} style={styles.form}>
+        <label style={styles.label}>{t.newPassword}</label>
+        <input
+          type="password"
+          placeholder="••••••••"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          style={styles.input}
+        />
 
-        <p style={styles.subtitle}>
-          {language === 'de'
-            ? 'Neues Passwort'
-            : language === 'en'
-              ? 'New password'
-              : 'Nova lozinka'}
-        </p>
+        <label style={styles.label}>{t.confirmPassword}</label>
+        <input
+          type="password"
+          placeholder="••••••••"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          style={styles.input}
+        />
 
-        <form onSubmit={handleUpdatePassword} style={styles.form}>
-          <input
-            type="password"
-            placeholder={t.password}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            style={styles.input}
-            autoComplete="new-password"
-            required
-          />
+        {errorMessage ? (
+          <p style={styles.error}>{errorMessage}</p>
+        ) : null}
 
-          <input
-            type="password"
-            placeholder={
-              language === 'de'
-                ? 'Passwort bestätigen'
-                : language === 'en'
-                  ? 'Confirm password'
-                  : 'Potvrdi lozinku'
-            }
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            style={styles.input}
-            autoComplete="new-password"
-            required
-          />
+        {successMessage ? (
+          <p style={styles.success}>{successMessage}</p>
+        ) : null}
 
-          {errorMessage ? <p style={styles.error}>{errorMessage}</p> : null}
-          {successMessage ? <p style={styles.success}>{successMessage}</p> : null}
+        <button type="submit" style={styles.button} disabled={loading}>
+          {loading ? t.loading : t.savePassword}
+        </button>
 
-          <button type="submit" style={styles.button} disabled={loading}>
-            {loading
-              ? language === 'de'
-                ? 'Speichern...'
-                : language === 'en'
-                  ? 'Saving...'
-                  : 'Spremam...'
-              : language === 'de'
-                ? 'Passwort speichern'
-                : language === 'en'
-                  ? 'Save password'
-                  : 'Spremi lozinku'}
-          </button>
-        </form>
-
-        <div style={styles.linksBox}>
+        <div style={styles.bottomCenter}>
           <Link href="/login" style={styles.link}>
-            {language === 'de'
-              ? 'Zurück zum Login'
-              : language === 'en'
-                ? 'Back to login'
-                : 'Nazad na login'}
+            {t.backToLogin}
           </Link>
         </div>
-
-        <div style={styles.languageRow}>
-          <button
-            type="button"
-            onClick={() => changeLanguage('de')}
-            style={{
-              ...styles.languageButton,
-              ...(language === 'de' ? styles.languageButtonActive : {}),
-            }}
-          >
-            {t.languageDe}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => changeLanguage('en')}
-            style={{
-              ...styles.languageButton,
-              ...(language === 'en' ? styles.languageButtonActive : {}),
-            }}
-          >
-            {t.languageEn}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => changeLanguage('bhs')}
-            style={{
-              ...styles.languageButton,
-              ...(language === 'bhs' ? styles.languageButtonActive : {}),
-            }}
-          >
-            {t.languageBhs}
-          </button>
-        </div>
-      </div>
-    </main>
+      </form>
+    </AuthLayout>
   )
 }
 
 const styles = {
-  page: {
-    minHeight: '100vh',
-    background: 'linear-gradient(180deg, #eef4fb 0%, #e7eef8 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px',
-  },
-  card: {
-    width: '100%',
-    maxWidth: '460px',
-    background: '#ffffff',
-    borderRadius: '28px',
-    padding: '36px 26px 28px 26px',
-    boxShadow: '0 18px 60px rgba(22,59,122,0.12)',
-    border: '1px solid rgba(22,59,122,0.06)',
-  },
-  logo: {
-    display: 'block',
-    width: '250px',
-    maxWidth: '88%',
-    height: 'auto',
-    margin: '0 auto 18px auto',
-    objectFit: 'contain',
-  },
-  subtitle: {
-    textAlign: 'center',
-    color: '#667085',
-    marginBottom: '26px',
-    fontSize: '18px',
-    fontWeight: '700',
-  },
   form: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '14px',
+  },
+  label: {
+    fontSize: '15px',
+    fontWeight: 700,
+    color: '#294770',
+    marginBottom: '8px',
+    marginTop: '4px',
   },
   input: {
-    width: '100%',
-    padding: '15px 16px',
+    height: '56px',
     borderRadius: '14px',
-    border: '1px solid #d7deea',
+    border: '1px solid #d6e1ee',
+    padding: '0 16px',
     fontSize: '16px',
     outline: 'none',
-    background: '#f9fbfe',
-    color: '#111827',
-    boxSizing: 'border-box',
+    background: '#fbfdff',
+    color: '#163b7a',
+    marginBottom: '18px',
+    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
   },
   button: {
-    marginTop: '4px',
-    width: '100%',
-    padding: '15px',
-    borderRadius: '14px',
+    height: '58px',
     border: 'none',
-    background: '#163b7a',
-    color: '#ffffff',
-    fontSize: '16px',
-    fontWeight: '800',
+    borderRadius: '16px',
+    background: 'linear-gradient(180deg, #1f74f2 0%, #0f56cf 100%)',
+    color: '#fff',
+    fontSize: '22px',
+    fontWeight: 800,
     cursor: 'pointer',
-    boxShadow: '0 8px 22px rgba(22,59,122,0.22)',
+    marginTop: '8px',
+    boxShadow: '0 16px 28px rgba(15, 86, 207, 0.24)',
   },
-  linksBox: {
-    marginTop: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    alignItems: 'center',
-  },
-  link: {
-    color: '#163b7a',
-    textDecoration: 'none',
-    fontWeight: '700',
-    fontSize: '14px',
-  },
-  languageRow: {
+  bottomCenter: {
     display: 'flex',
     justifyContent: 'center',
-    gap: '10px',
-    marginTop: '20px',
-    flexWrap: 'wrap',
+    marginTop: '18px',
   },
-  languageButton: {
-    border: '1px solid #d7deea',
-    background: '#f9fbfe',
-    color: '#163b7a',
-    borderRadius: '999px',
-    padding: '8px 14px',
-    fontSize: '13px',
-    fontWeight: '700',
-    cursor: 'pointer',
-  },
-  languageButtonActive: {
-    background: '#163b7a',
-    color: '#fff',
-    border: '1px solid #163b7a',
+  link: {
+    color: '#1f63d0',
+    textDecoration: 'none',
+    fontWeight: 700,
+    fontSize: '15px',
   },
   error: {
-    color: '#d92d20',
+    margin: '0 0 12px',
+    color: '#c62828',
+    fontWeight: 600,
     fontSize: '14px',
-    margin: 0,
-    textAlign: 'center',
-    background: '#fff1f0',
-    border: '1px solid #ffd3cf',
-    borderRadius: '10px',
-    padding: '10px 12px',
   },
   success: {
-    color: '#067647',
+    margin: '0 0 12px',
+    color: '#1f7a39',
+    fontWeight: 600,
     fontSize: '14px',
-    margin: 0,
-    textAlign: 'center',
-    background: '#ecfdf3',
-    border: '1px solid #abefc6',
-    borderRadius: '10px',
-    padding: '10px 12px',
   },
 }

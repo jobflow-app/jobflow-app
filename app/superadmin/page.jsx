@@ -1,40 +1,14 @@
-export default function SuperAdminPage() {
-  return (
-    <main style={styles.page}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>JobFlow Superadmin</h1>
-        <p style={styles.text}>Welcome, Velibor.</p>
-        <p style={styles.text}>Superadmin panel radi.</p>
-      </div>
-    </main>
-  )
-}
+'use client'
 
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: '#eef2f7',
-    padding: '24px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  card: {
-    width: '100%',
-    maxWidth: '700px',
-    background: '#fff',
-    borderRadius: '24px',
-    padding: '32px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
-  },
-  title: {
-    fontSize: '32px',
-    fontWeight: '800',
-    color: '#163b7a',
-    marginBottom: '16px',
-  },
-  text: {
-    color: '#475467',
-    marginBottom: '10px',
-  },
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+
+export default function SuperadminPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    router.replace('/superadmin/dashboard')
+  }, [])
+
+  return null
 }

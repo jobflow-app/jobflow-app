@@ -8,7 +8,7 @@ export default function SuperadminPage() {
 
   useEffect(() => {
     router.replace('/superadmin/dashboard')
-  }, [])
+  }, [router])
 
   return null
 }

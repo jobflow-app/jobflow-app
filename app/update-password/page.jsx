@@ -1,175 +1,245 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import AuthLayout from '@/components/AuthLayout'
 import { supabase } from '@/lib/supabase'
-import {
-  authTexts,
-  getInitialLanguage,
-  saveLanguage,
-} from '@/lib/auth-i18n'
 
-export default function UpdatePasswordPage() {
-  const [language, setLanguageState] = useState('de')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
-  useEffect(() => {
-    setLanguageState(getInitialLanguage())
-  }, [])
-
-  const t = useMemo(() => authTexts[language] || authTexts.de, [language])
-
-  function handleLanguageChange(nextLanguage) {
-    setLanguageState(nextLanguage)
-    saveLanguage(nextLanguage)
-  }
-
-  async function handleUpdatePassword(e) {
+  const handleResetPassword = async (e) => {
     e.preventDefault()
-    setErrorMessage('')
-    setSuccessMessage('')
-
-    if (!password || !confirmPassword) {
-      setErrorMessage(t.requiredFields)
-      return
-    }
-
-    if (password.length < 6) {
-      setErrorMessage(t.passwordTooShort)
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setErrorMessage(t.passwordsNotMatch)
-      return
-    }
-
+    setError('')
+    setSuccess('')
     setLoading(true)
 
-    const { error } = await supabase.auth.updateUser({
-      password,
-    })
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/update-password`,
+      })
 
-    if (error) {
-      setErrorMessage(error.message || t.genericError)
+      if (error) {
+        setError('Passwort-Reset konnte nicht gesendet werden.')
+        setLoading(false)
+        return
+      }
+
+      setSuccess('Reset-Link wurde an Ihre E-Mail gesendet.')
+    } catch (err) {
+      setError('Ein unerwarteter Fehler ist aufgetreten.')
+    } finally {
       setLoading(false)
-      return
     }
-
-    setSuccessMessage(t.passwordUpdated)
-    setLoading(false)
   }
 
   return (
-    <AuthLayout
-      title={t.updateTitle}
-      subtitle={t.updateSubtitle}
-      language={language}
-      setLanguage={handleLanguageChange}
-    >
-      <form onSubmit={handleUpdatePassword} style={styles.form}>
-        <label style={styles.label}>{t.newPassword}</label>
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={styles.input}
-        />
+    <main style={styles.page}>
+      <div style={styles.backgroundGlowOne}></div>
+      <div style={styles.backgroundGlowTwo}></div>
 
-        <label style={styles.label}>{t.confirmPassword}</label>
-        <input
-          type="password"
-          placeholder="••••••••"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          style={styles.input}
-        />
+      <div style={styles.card}>
+        <div style={styles.logoWrap}>
+          <img src="/logo.png" alt="JobFlow" style={styles.logo} />
+        </div>
 
-        {errorMessage ? (
-          <p style={styles.error}>{errorMessage}</p>
-        ) : null}
+        <div style={styles.header}>
+          <h1 style={styles.title}>Passwort vergessen</h1>
+          <p style={styles.subtitle}>
+            Geben Sie Ihre E-Mail ein, um einen Reset-Link zu erhalten
+          </p>
+        </div>
 
-        {successMessage ? (
-          <p style={styles.success}>{successMessage}</p>
-        ) : null}
+        <form onSubmit={handleResetPassword} style={styles.form}>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>E-Mail</label>
+            <input
+              type="email"
+              placeholder="ihre@email.de"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={styles.input}
+              autoComplete="email"
+              required
+            />
+          </div>
 
-        <button type="submit" style={styles.button} disabled={loading}>
-          {loading ? t.loading : t.savePassword}
-        </button>
+          {error ? <div style={styles.error}>{error}</div> : null}
+          {success ? <div style={styles.success}>{success}</div> : null}
 
-        <div style={styles.bottomCenter}>
+          <button type="submit" style={styles.button} disabled={loading}>
+            {loading ? 'Wird gesendet...' : 'Reset-Link senden'}
+          </button>
+        </form>
+
+        <div style={styles.footer}>
           <Link href="/login" style={styles.link}>
-            {t.backToLogin}
+            Zurück zum Login
           </Link>
         </div>
-      </form>
-    </AuthLayout>
+      </div>
+    </main>
   )
 }
 
 const styles = {
+  page: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '24px',
+    background:
+      'linear-gradient(135deg, #0f172a 0%, #111827 35%, #1e293b 100%)',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+
+  backgroundGlowOne: {
+    position: 'absolute',
+    width: '420px',
+    height: '420px',
+    borderRadius: '50%',
+    background: 'rgba(59,130,246,0.18)',
+    filter: 'blur(80px)',
+    top: '-80px',
+    left: '-80px',
+  },
+
+  backgroundGlowTwo: {
+    position: 'absolute',
+    width: '380px',
+    height: '380px',
+    borderRadius: '50%',
+    background: 'rgba(168,85,247,0.14)',
+    filter: 'blur(90px)',
+    bottom: '-100px',
+    right: '-80px',
+  },
+
+  card: {
+    width: '100%',
+    maxWidth: '520px',
+    background: 'rgba(255,255,255,0.08)',
+    backdropFilter: 'blur(18px)',
+    WebkitBackdropFilter: 'blur(18px)',
+    border: '1px solid rgba(255,255,255,0.14)',
+    borderRadius: '28px',
+    padding: '34px 28px',
+    boxShadow: '0 25px 60px rgba(0,0,0,0.35)',
+    position: 'relative',
+    zIndex: 2,
+  },
+
+  logoWrap: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginBottom: '20px',
+  },
+
+  logo: {
+    width: '170px',
+    height: 'auto',
+    objectFit: 'contain',
+    display: 'block',
+  },
+
+  header: {
+    textAlign: 'center',
+    marginBottom: '28px',
+  },
+
+  title: {
+    color: '#ffffff',
+    fontSize: '34px',
+    fontWeight: '800',
+    margin: '0 0 10px 0',
+    letterSpacing: '-0.02em',
+  },
+
+  subtitle: {
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: '15px',
+    margin: 0,
+    lineHeight: '1.5',
+  },
+
   form: {
     display: 'flex',
     flexDirection: 'column',
+    gap: '18px',
   },
+
+  inputGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+
   label: {
-    fontSize: '15px',
-    fontWeight: 700,
-    color: '#294770',
-    marginBottom: '8px',
-    marginTop: '4px',
+    color: '#e5e7eb',
+    fontSize: '14px',
+    fontWeight: '600',
   },
+
   input: {
+    width: '100%',
     height: '56px',
-    borderRadius: '14px',
-    border: '1px solid #d6e1ee',
-    padding: '0 16px',
-    fontSize: '16px',
-    outline: 'none',
-    background: '#fbfdff',
-    color: '#163b7a',
-    marginBottom: '18px',
-    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)',
-  },
-  button: {
-    height: '58px',
-    border: 'none',
     borderRadius: '16px',
-    background: 'linear-gradient(180deg, #1f74f2 0%, #0f56cf 100%)',
-    color: '#fff',
-    fontSize: '22px',
-    fontWeight: 800,
-    cursor: 'pointer',
-    marginTop: '8px',
-    boxShadow: '0 16px 28px rgba(15, 86, 207, 0.24)',
+    border: '1px solid rgba(255,255,255,0.14)',
+    background: 'rgba(255,255,255,0.08)',
+    color: '#ffffff',
+    padding: '0 18px',
+    fontSize: '15px',
+    outline: 'none',
+    boxSizing: 'border-box',
   },
-  bottomCenter: {
+
+  error: {
+    background: 'rgba(239,68,68,0.14)',
+    border: '1px solid rgba(239,68,68,0.35)',
+    color: '#fecaca',
+    padding: '14px 16px',
+    borderRadius: '14px',
+    fontSize: '14px',
+    lineHeight: '1.5',
+  },
+
+  success: {
+    background: 'rgba(34,197,94,0.14)',
+    border: '1px solid rgba(34,197,94,0.35)',
+    color: '#bbf7d0',
+    padding: '14px 16px',
+    borderRadius: '14px',
+    fontSize: '14px',
+    lineHeight: '1.5',
+  },
+
+  button: {
+    marginTop: '6px',
+    height: '58px',
+    borderRadius: '16px',
+    border: 'none',
+    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+    color: '#ffffff',
+    fontSize: '16px',
+    fontWeight: '800',
+    cursor: 'pointer',
+    boxShadow: '0 12px 28px rgba(37,99,235,0.35)',
+  },
+
+  footer: {
+    marginTop: '22px',
     display: 'flex',
     justifyContent: 'center',
-    marginTop: '18px',
   },
+
   link: {
-    color: '#1f63d0',
+    color: '#93c5fd',
     textDecoration: 'none',
-    fontWeight: 700,
-    fontSize: '15px',
-  },
-  error: {
-    margin: '0 0 12px',
-    color: '#c62828',
-    fontWeight: 600,
-    fontSize: '14px',
-  },
-  success: {
-    margin: '0 0 12px',
-    color: '#1f7a39',
-    fontWeight: 600,
+    fontWeight: '700',
     fontSize: '14px',
   },
 }

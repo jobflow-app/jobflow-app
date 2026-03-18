@@ -46,14 +46,19 @@ export default function SuperadminDashboardPage() {
       const email = user.email || ''
       setUserEmail(email)
 
-      const { data: superadminRow, error: superadminError } = await supabase
-        .from('superadmins')
-        .select('email')
-        .eq('email', email)
-        .maybeSingle()
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
 
-      if (superadminError || !superadminRow) {
-        router.push('/dashboard')
+      if (profileError || !profile) {
+        router.push('/login')
+        return
+      }
+
+      if (profile.role !== 'superadmin') {
+        router.push('/login')
         return
       }
 
@@ -300,7 +305,9 @@ export default function SuperadminDashboardPage() {
                   <div style={styles.td}>{company.workersCount}</div>
                   <div style={styles.td}>{company.clientsCount}</div>
                   <div style={styles.td}>{company.activeJobsCount}</div>
-                  <div style={styles.td}>{company.monthlyPrice > 0 ? formatMoney(company.monthlyPrice) : '—'}</div>
+                  <div style={styles.td}>
+                    {company.monthlyPrice > 0 ? formatMoney(company.monthlyPrice) : '—'}
+                  </div>
                 </div>
               ))
             )}

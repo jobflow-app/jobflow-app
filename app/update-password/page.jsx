@@ -1,33 +1,52 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('')
+export default function UpdatePasswordPage() {
+  const router = useRouter()
+
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
-  const handleResetPassword = async (e) => {
+  const handleUpdatePassword = async (e) => {
     e.preventDefault()
     setError('')
     setSuccess('')
+
+    if (password.length < 6) {
+      setError('Das Passwort muss mindestens 6 Zeichen haben.')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Die Passwörter stimmen nicht überein.')
+      return
+    }
+
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/update-password`,
+      const { error } = await supabase.auth.updateUser({
+        password,
       })
 
       if (error) {
-        setError('Passwort-Reset konnte nicht gesendet werden.')
+        setError('Passwort konnte nicht aktualisiert werden.')
         setLoading(false)
         return
       }
 
-      setSuccess('Reset-Link wurde an Ihre E-Mail gesendet.')
+      setSuccess('Passwort wurde erfolgreich aktualisiert.')
+
+      setTimeout(() => {
+        router.push('/login')
+      }, 1500)
     } catch (err) {
       setError('Ein unerwarteter Fehler ist aufgetreten.')
     } finally {
@@ -46,22 +65,42 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div style={styles.header}>
-          <h1 style={styles.title}>Passwort vergessen</h1>
+          <h1 style={styles.title}>Neues Passwort</h1>
           <p style={styles.subtitle}>
-            Geben Sie Ihre E-Mail ein, um einen Reset-Link zu erhalten
+            Legen Sie jetzt ein neues Passwort für Ihr Konto fest
           </p>
         </div>
 
-        <form onSubmit={handleResetPassword} style={styles.form}>
+        <form onSubmit={handleUpdatePassword} style={styles.form}>
           <div style={styles.inputGroup}>
-            <label style={styles.label}>E-Mail</label>
+            <label style={styles.label}>Neues Passwort</label>
+            <div style={styles.passwordWrap}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Neues Passwort"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={styles.passwordInput}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={styles.showButton}
+              >
+                {showPassword ? 'Verbergen' : 'Anzeigen'}
+              </button>
+            </div>
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Passwort bestätigen</label>
             <input
-              type="email"
-              placeholder="ihre@email.de"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Passwort bestätigen"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               style={styles.input}
-              autoComplete="email"
               required
             />
           </div>
@@ -70,15 +109,9 @@ export default function ForgotPasswordPage() {
           {success ? <div style={styles.success}>{success}</div> : null}
 
           <button type="submit" style={styles.button} disabled={loading}>
-            {loading ? 'Wird gesendet...' : 'Reset-Link senden'}
+            {loading ? 'Wird gespeichert...' : 'Passwort aktualisieren'}
           </button>
         </form>
-
-        <div style={styles.footer}>
-          <Link href="/login" style={styles.link}>
-            Zurück zum Login
-          </Link>
-        </div>
       </div>
     </main>
   )
@@ -197,6 +230,37 @@ const styles = {
     boxSizing: 'border-box',
   },
 
+  passwordWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    borderRadius: '16px',
+    border: '1px solid rgba(255,255,255,0.14)',
+    background: 'rgba(255,255,255,0.08)',
+    overflow: 'hidden',
+  },
+
+  passwordInput: {
+    flex: 1,
+    height: '56px',
+    border: 'none',
+    background: 'transparent',
+    color: '#ffffff',
+    padding: '0 18px',
+    fontSize: '15px',
+    outline: 'none',
+  },
+
+  showButton: {
+    height: '56px',
+    border: 'none',
+    background: 'transparent',
+    color: '#93c5fd',
+    fontWeight: '700',
+    padding: '0 16px',
+    cursor: 'pointer',
+    fontSize: '14px',
+  },
+
   error: {
     background: 'rgba(239,68,68,0.14)',
     border: '1px solid rgba(239,68,68,0.35)',
@@ -228,18 +292,5 @@ const styles = {
     fontWeight: '800',
     cursor: 'pointer',
     boxShadow: '0 12px 28px rgba(37,99,235,0.35)',
-  },
-
-  footer: {
-    marginTop: '22px',
-    display: 'flex',
-    justifyContent: 'center',
-  },
-
-  link: {
-    color: '#93c5fd',
-    textDecoration: 'none',
-    fontWeight: '700',
-    fontSize: '14px',
   },
 }

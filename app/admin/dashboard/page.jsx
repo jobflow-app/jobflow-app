@@ -1,10 +1,10 @@
 'use client'
 
-export default function SuperadminDashboard() {
+export default function AdminDashboardPage() {
   return (
     <main style={{ padding: 40 }}>
-      <h1>Superadmin Dashboard</h1>
-      <p>JobFlow SaaS Control Center</p>
+      <h1>Admin Dashboard</h1>
+      <p>Willkommen im JobFlow Admin-Bereich</p>
     </main>
   )
 }

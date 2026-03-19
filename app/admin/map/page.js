@@ -2,35 +2,18 @@
 
 import WorkersMap from '@/components/WorkersMap'
 
-export default function MapPage() {
+export default function AdminMapPage() {
   return (
-    <main style={styles.page}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Map</h1>
-        <p style={styles.subtitle}>Live Workers Map</p>
-      </div>
+    <main style={{ padding: '20px' }}>
+      <h1 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '8px' }}>
+        Live Workers Map
+      </h1>
 
-      <WorkersMap title="Workers Location" />
+      <p style={{ marginBottom: '20px', color: '#64748b' }}>
+        Übersicht der Mitarbeiterstandorte.
+      </p>
+
+      <WorkersMap />
     </main>
   )
-}
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: '#eef2f7',
-    padding: '30px',
-  },
-  header: {
-    marginBottom: '24px',
-  },
-  title: {
-    fontSize: '32px',
-    fontWeight: '800',
-    color: '#163b7a',
-    marginBottom: '8px',
-  },
-  subtitle: {
-    color: '#6b7280',
-  },
 }

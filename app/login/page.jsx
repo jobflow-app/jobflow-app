@@ -2,18 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import ThemeToggle from '@/components/ThemeToggle'
+import { supabase } from '@/lib/supabase'
 
 export default function LoginPage() {
   const router = useRouter()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  // 🔥 automatski ucitaj theme
   useEffect(() => {
     const saved = localStorage.getItem('theme')
     if (saved === 'dark') {
@@ -44,30 +43,41 @@ export default function LoginPage() {
       .eq('id', user.id)
       .single()
 
-    if (profile.role === 'superadmin') {
-      router.push('/superadmin/dashboard')
-    } else if (profile.role === 'admin') {
+    if (profile.role === 'admin') {
       router.push('/admin/dashboard')
     } else {
-      router.push('/worker/dashboard')
+      router.push('/superadmin/dashboard')
     }
   }
 
   return (
     <main style={styles.page}>
 
-      {/* 🔥 DARK / LIGHT TOGGLE */}
       <div style={styles.toggle}>
         <ThemeToggle />
       </div>
 
+      {/* LEFT SIDE */}
+      <div style={styles.left}>
+        <h1 style={styles.hero}>
+          Dein Handwerk.
+          <br />
+          Perfekt organisiert.
+        </h1>
+
+        <p style={styles.text}>
+          JobFlow bringt Aufträge, Kunden, Mitarbeiter und Rechnungen
+          in ein modernes System – einfach, schnell und übersichtlich.
+        </p>
+      </div>
+
+      {/* RIGHT LOGIN */}
       <div style={styles.card}>
         <img src="/logo.png" style={styles.logo} />
 
-        <h1 style={styles.title}>JobFlow Login</h1>
+        <h2 style={styles.title}>Login</h2>
 
         <input
-          type="email"
           placeholder="E-Mail"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -100,11 +110,9 @@ export default function LoginPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'var(--bg)',
     display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    background: 'var(--bg)',
+    color: 'var(--text)',
   },
 
   toggle: {
@@ -113,23 +121,40 @@ const styles = {
     right: 20,
   },
 
+  left: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    padding: '60px',
+  },
+
+  hero: {
+    fontSize: '48px',
+    fontWeight: '900',
+  },
+
+  text: {
+    marginTop: '20px',
+    color: 'var(--text-secondary)',
+  },
+
   card: {
-    width: '350px',
-    padding: '30px',
+    width: '400px',
+    margin: 'auto',
+    padding: '40px',
     borderRadius: '20px',
     background: 'var(--card)',
     boxShadow: 'var(--shadow)',
-    textAlign: 'center',
   },
 
   logo: {
     height: '60px',
-    marginBottom: '10px',
+    marginBottom: '20px',
   },
 
   title: {
     marginBottom: '20px',
-    color: 'var(--text)',
   },
 
   input: {
@@ -149,8 +174,7 @@ const styles = {
     border: 'none',
     background: 'linear-gradient(135deg, var(--primary-dark), var(--primary))',
     color: '#fff',
-    fontWeight: '700',
-    cursor: 'pointer',
+    fontWeight: '800',
   },
 
   error: {

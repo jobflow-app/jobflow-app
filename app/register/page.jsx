@@ -11,7 +11,7 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -22,24 +22,27 @@ export default function RegisterPage() {
       setError('')
       setSuccess('')
 
-      if (!companyName || !email || !password || !confirmPassword) {
-        setError('Bitte fülle alle Felder aus.')
+      if (!companyName || !email || !password || !passwordConfirm) {
+        setError('Bitte alle Felder ausfüllen.')
         return
       }
 
-      if (password !== confirmPassword) {
-        setError('Die Passwörter stimmen nicht überein.')
+      if (password !== passwordConfirm) {
+        setError('Passwörter stimmen nicht überein.')
         return
       }
 
       if (password.length < 6) {
-        setError('Das Passwort muss mindestens 6 Zeichen haben.')
+        setError('Passwort muss mindestens 6 Zeichen haben.')
         return
       }
 
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
       })
 
       if (signUpError) {
@@ -106,10 +109,10 @@ export default function RegisterPage() {
         return
       }
 
-      setSuccess('Registrierung erfolgreich. Du kannst dich jetzt anmelden.')
+      setSuccess('Registrierung erfolgreich. Bitte E-Mail bestätigen.')
       setTimeout(() => {
         router.push('/login')
-      }, 1200)
+      }, 1500)
     } catch (err) {
       console.error(err)
       setError('Etwas ist schiefgelaufen.')
@@ -121,8 +124,8 @@ export default function RegisterPage() {
   return (
     <main style={styles.page}>
       <div style={styles.card}>
-        <h1 style={styles.title}>JobFlow</h1>
-        <p style={styles.subtitle}>Firma registrieren</p>
+        <img src="/logo.png" alt="JobFlow" style={styles.logo} />
+        <h1 style={styles.title}>Firma registrieren</h1>
 
         <input
           type="text"
@@ -151,8 +154,8 @@ export default function RegisterPage() {
         <input
           type="password"
           placeholder="Passwort bestätigen"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          value={passwordConfirm}
+          onChange={(e) => setPasswordConfirm(e.target.value)}
           style={styles.input}
         />
 
@@ -163,7 +166,7 @@ export default function RegisterPage() {
         {error ? <p style={styles.error}>{error}</p> : null}
         {success ? <p style={styles.success}>{success}</p> : null}
 
-        <p style={styles.footerText}>
+        <p style={styles.footer}>
           Bereits registriert? <Link href="/login" style={styles.link}>Anmelden</Link>
         </p>
       </div>
@@ -174,31 +177,30 @@ export default function RegisterPage() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: '#eef2f7',
     display: 'flex',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(180deg, #eef2f7 0%, #e7edf6 100%)',
     padding: '24px',
   },
   card: {
     width: '100%',
     maxWidth: '420px',
-    background: '#ffffff',
+    background: '#fff',
     borderRadius: '24px',
-    padding: '40px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+    padding: '36px',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.08)',
+  },
+  logo: {
+    height: '52px',
+    objectFit: 'contain',
+    marginBottom: '18px',
   },
   title: {
-    fontSize: '30px',
-    fontWeight: '800',
+    fontSize: '28px',
+    fontWeight: '900',
+    marginBottom: '18px',
     color: '#163b7a',
-    marginBottom: '8px',
-    textAlign: 'center',
-  },
-  subtitle: {
-    textAlign: 'center',
-    color: '#64748b',
-    marginBottom: '24px',
   },
   input: {
     width: '100%',
@@ -207,37 +209,33 @@ const styles = {
     border: '1px solid #dbe2ea',
     marginBottom: '12px',
     fontSize: '15px',
-    outline: 'none',
   },
   button: {
     width: '100%',
-    padding: '14px',
-    borderRadius: '14px',
+    height: '50px',
     border: 'none',
-    background: '#163b7a',
-    color: '#ffffff',
+    borderRadius: '14px',
+    background: 'linear-gradient(135deg, #163b7a 0%, #2563eb 100%)',
+    color: '#fff',
     fontWeight: '800',
     cursor: 'pointer',
-    marginTop: '8px',
+    marginTop: '6px',
   },
   error: {
     color: '#b91c1c',
-    marginTop: '14px',
-    textAlign: 'center',
+    marginTop: '12px',
   },
   success: {
     color: '#166534',
-    marginTop: '14px',
-    textAlign: 'center',
+    marginTop: '12px',
   },
-  footerText: {
-    textAlign: 'center',
-    marginTop: '18px',
+  footer: {
+    marginTop: '16px',
     color: '#64748b',
   },
   link: {
     color: '#163b7a',
-    fontWeight: '700',
+    fontWeight: '800',
     textDecoration: 'none',
   },
 }

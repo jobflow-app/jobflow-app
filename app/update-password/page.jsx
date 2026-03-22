@@ -1,65 +1,77 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function UpdatePasswordPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [password, setPassword] = useState('')
-  const [passwordConfirm, setPasswordConfirm] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleUpdatePassword = async () => {
-    try {
-      setLoading(true)
-      setError('')
-      setSuccess('')
+    setError('')
+    setSuccess('')
 
-      if (!password || !passwordConfirm) {
-        setError('Bitte alle Felder ausfüllen.')
-        return
-      }
+    if (!password || !confirmPassword) {
+      setError('Bitte beide Felder ausfüllen.')
+      return
+    }
 
-      if (password !== passwordConfirm) {
-        setError('Passwörter stimmen nicht überein.')
-        return
-      }
+    if (password !== confirmPassword) {
+      setError('Die Passwörter stimmen nicht überein.')
+      return
+    }
 
-      if (password.length < 6) {
-        setError('Passwort muss mindestens 6 Zeichen haben.')
-        return
-      }
+    setLoading(true)
 
-      const { error } = await supabase.auth.updateUser({
-        password,
+    const token_hash = searchParams.get('token_hash')
+    const type = searchParams.get('type')
+
+    if (token_hash && type === 'recovery') {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        type: 'recovery',
+        token_hash,
       })
 
-      if (error) {
-        setError(error.message)
+      if (verifyError) {
+        setError('Der Passwort-Link ist ungültig oder abgelaufen.')
+        setLoading(false)
         return
       }
-
-      setSuccess('Passwort erfolgreich gespeichert.')
-      setTimeout(() => {
-        router.push('/login')
-      }, 1500)
-    } catch (err) {
-      console.error(err)
-      setError('Etwas ist schiefgelaufen.')
-    } finally {
-      setLoading(false)
     }
+
+    const { error: updateError } = await supabase.auth.updateUser({
+      password,
+    })
+
+    if (updateError) {
+      setError(updateError.message)
+      setLoading(false)
+      return
+    }
+
+    setSuccess('Ihr Passwort wurde erfolgreich aktualisiert.')
+    setLoading(false)
+
+    setTimeout(() => {
+      router.push('/login')
+    }, 1800)
   }
 
   return (
     <main style={styles.page}>
       <div style={styles.card}>
-        <img src="/logo.png" alt="JobFlow" style={styles.logo} />
-        <h1 style={styles.title}>Neues Passwort</h1>
+        <div style={styles.badge}>JOBFLOW</div>
+        <h1 style={styles.title}>Neues Passwort setzen</h1>
+        <p style={styles.text}>
+          Bitte vergeben Sie ein neues sicheres Passwort für Ihr JobFlow-Konto.
+        </p>
 
         <input
           type="password"
@@ -71,14 +83,18 @@ export default function UpdatePasswordPage() {
 
         <input
           type="password"
-          placeholder="Passwort bestätigen"
-          value={passwordConfirm}
-          onChange={(e) => setPasswordConfirm(e.target.value)}
+          placeholder="Passwort wiederholen"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
           style={styles.input}
         />
 
-        <button onClick={handleUpdatePassword} style={styles.button} disabled={loading}>
-          {loading ? 'Speichern...' : 'Passwort speichern'}
+        <button
+          onClick={handleUpdatePassword}
+          disabled={loading}
+          style={styles.button}
+        >
+          {loading ? 'Wird gespeichert...' : 'Passwort aktualisieren'}
         </button>
 
         {error ? <p style={styles.error}>{error}</p> : null}
@@ -94,52 +110,76 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(180deg, #eef2f7 0%, #e7edf6 100%)',
+    background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 45%, #f8fbff 100%)',
     padding: '24px',
   },
   card: {
     width: '100%',
-    maxWidth: '420px',
-    background: '#fff',
-    borderRadius: '24px',
-    padding: '36px',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.08)',
+    maxWidth: '520px',
+    background: '#ffffff',
+    borderRadius: '28px',
+    padding: '42px',
+    boxShadow: '0 30px 80px rgba(15, 23, 42, 0.10)',
+    border: '1px solid rgba(148, 163, 184, 0.18)',
   },
-  logo: {
-    height: '52px',
-    objectFit: 'contain',
-    marginBottom: '18px',
+  badge: {
+    display: 'inline-flex',
+    padding: '10px 16px',
+    borderRadius: '999px',
+    background: '#e9f0ff',
+    color: '#1d4ed8',
+    fontWeight: '800',
+    fontSize: '12px',
+    letterSpacing: '0.08em',
+    marginBottom: '24px',
   },
   title: {
-    fontSize: '28px',
+    fontSize: '34px',
     fontWeight: '900',
-    marginBottom: '18px',
-    color: '#163b7a',
+    color: '#0f172a',
+    margin: '0 0 14px 0',
+  },
+  text: {
+    fontSize: '16px',
+    lineHeight: 1.7,
+    color: '#475569',
+    marginBottom: '24px',
   },
   input: {
     width: '100%',
-    padding: '14px',
-    borderRadius: '12px',
-    border: '1px solid #dbe2ea',
-    marginBottom: '12px',
+    height: '54px',
+    borderRadius: '14px',
+    border: '1px solid #dbe4f0',
+    background: '#ffffff',
+    color: '#0f172a',
+    padding: '0 16px',
     fontSize: '15px',
+    outline: 'none',
+    marginBottom: '14px',
+    boxSizing: 'border-box',
   },
   button: {
     width: '100%',
-    height: '50px',
-    border: 'none',
+    height: '54px',
     borderRadius: '14px',
-    background: 'linear-gradient(135deg, #163b7a 0%, #2563eb 100%)',
-    color: '#fff',
+    border: 'none',
+    background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+    color: '#ffffff',
     fontWeight: '800',
+    fontSize: '15px',
     cursor: 'pointer',
+    marginTop: '4px',
   },
   error: {
-    color: '#b91c1c',
-    marginTop: '12px',
+    marginTop: '14px',
+    color: '#dc2626',
+    fontSize: '14px',
+    fontWeight: '600',
   },
   success: {
-    color: '#166534',
-    marginTop: '12px',
+    marginTop: '14px',
+    color: '#15803d',
+    fontSize: '14px',
+    fontWeight: '600',
   },
 }
